@@ -41,6 +41,7 @@ class AdminController extends Controller
             'password' => 'required',
         ]);
 
+        $loginInput = $request->input('username');
         $fieldType = filter_var($loginInput, FILTER_VALIDATE_EMAIL) ? 'email' : 'username';
 
         if (Auth::attempt([$fieldType => $loginInput, 'password' => $request->password], $request->boolean('remember', true))) {
