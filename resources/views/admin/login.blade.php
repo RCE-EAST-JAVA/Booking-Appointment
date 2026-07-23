@@ -65,7 +65,7 @@
                         <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
                             <i data-lucide="user" class="w-4 h-4"></i>
                         </div>
-                        <input type="text" name="username" id="username" required value="{{ old('username', 'honest') }}"
+                        <input type="text" name="username" id="username" required value="{{ old('username') }}"
                                placeholder="Masukkan Username" 
                                class="w-full pl-10 pr-4 py-3 bg-slate-900/90 border border-slate-700 rounded-xl text-sm font-semibold text-white focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-all">
                     </div>
@@ -77,7 +77,7 @@
                         <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
                             <i data-lucide="lock" class="w-4 h-4"></i>
                         </div>
-                        <input type="password" name="password" id="password" required value="honest2026"
+                        <input type="password" name="password" id="password" required value=""
                                placeholder="••••••••" 
                                class="w-full pl-10 pr-4 py-3 bg-slate-900/90 border border-slate-700 rounded-xl text-sm font-semibold text-white focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-all">
                     </div>
@@ -85,7 +85,7 @@
 
                 <div class="flex items-center justify-between text-xs">
                     <label class="flex items-center gap-2.5 cursor-pointer text-slate-300 hover:text-white font-semibold select-none">
-                        <input type="checkbox" name="remember" value="1" checked
+                        <input type="checkbox" name="remember" value="1"
                                class="w-4 h-4 rounded bg-slate-900 border-slate-700 text-brand-600 focus:ring-brand-500 cursor-pointer">
                         <span>Ingat saya di perangkat ini (Tetap Login)</span>
                     </label>
@@ -95,10 +95,6 @@
                     Masuk Ke Dashboard <i data-lucide="arrow-right" class="w-4 h-4"></i>
                 </button>
             </form>
-
-            <div class="pt-2 text-center border-t border-slate-700/50">
-                <span class="text-[11px] text-slate-400">Default Admin Credentials: <strong>honest</strong> / <strong>honest2026</strong></span>
-            </div>
         </div>
 
     </div>
