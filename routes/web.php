@@ -13,13 +13,8 @@ Route::get('/reschedule/{token}', [StudentController::class, 'showRescheduleActi
 Route::post('/reschedule/{token}', [StudentController::class, 'handleRescheduleAction'])->name('student.reschedule.action');
 
 // --- Admin Authentication Routes ---
-Route::get('/login', function () {
-    return redirect()->away('https://rce-eastjava.org/login');
-})->name('login');
-
-Route::get('/admin/login', function () {
-    return redirect()->away('https://rce-eastjava.org/login');
-})->name('admin.login');
+Route::get('/login', [AdminController::class, 'showLoginForm'])->name('login');
+Route::get('/admin/login', [AdminController::class, 'showLoginForm'])->name('admin.login');
 Route::post('/admin/login', [AdminController::class, 'login'])->name('admin.login.submit');
 Route::post('/admin/logout', [AdminController::class, 'logout'])->name('admin.logout');
 
