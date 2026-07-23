@@ -1,58 +1,93 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# 📅 Sistem Informasi Manajemen Bimbingan & Janji Temu Akademik (Booking Appointment System)
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Sistem Informasi Manajemen Bimbingan & Janji Temu Akademik adalah aplikasi berbasis web modern yang dirancang untuk mempermudah proses penjadwalan bimbingan skripsi, konseling akademik, dan janji temu antara Mahasiswa dan Dosen.
 
-## About Laravel
+![Laravel](https://img.shields.io/badge/Laravel-FF2D20?style=for-the-badge&logo=laravel&logoColor=white)
+![TailwindCSS](https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white)
+![AlpineJS](https://img.shields.io/badge/Alpine.js-8BC0D0?style=for-the-badge&logo=alpine.js&logoColor=black)
+![PHP](https://img.shields.io/badge/PHP-777BB4?style=for-the-badge&logo=php&logoColor=white)
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+---
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## ✨ Fitur Utama
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+### 👨‍🎓 **Portal Mahasiswa**
+- 📝 **Formulir Janji Bimbingan**: Pendaftaran janji temu instan dengan validasi nama, NIM, prodi, keperluan, dan catatan bimbingan.
+- ⏱️ **Slot Waktu & Kuota Real-Time**: Slot jam dan sisa kuota bimbingan dihitung secara otomatis. Slot jam yang beririsan dengan rapat/dinas dosen otomatis diblokir.
+- 🔍 **Tracking Status Janji**: Pengecekan status janji bimbingan menggunakan Kode Booking unik (contoh: `BMB-20260723-XXXX`).
+- 🔄 **Aksi Reschedule Mahasiswa**: Mahasiswa dapat menyetujui atau menolak usulan jadwal ulang dari Dosen secara interaktif.
 
-## Learning Laravel
+### 👨‍🏫 **Dashboard Dosen & Admin**
+- 🗓️ **Kalender Visual Interaktif**: Tampilan kalender bulanan dengan badge jumlah mahasiswa terdaftar pada tiap tile tanggal dan modal detail pendaftar.
+- ⏰ **Pengaturan Jam Kerja & Multi-Range Jam Off**: Penentuan slot bimbingan mingguan serta pemblokiran jam tertentu (misal: Rapat jam 08:30-09:15 dan Dinas jam 13:00-14:00).
+- 🇮🇩 **Integrasi Open API Tanggal Merah Indonesia**: Sinkronisasi otomatis daftar Libur Nasional & Cuti Bersama Indonesia langsung dari Open API (`APIHariLibur_V2`).
+- ⚡ **Quick Action AJAX Tanpa Refresh**: Persetujuan (*Setujui*), penolakan (*Tolak*), penyesuaian jadwal (*Reschedule*), dan penandaan *Selesai* dieksekusi secara instan dengan indikator loading spinner.
+- 📢 **Pengumuman Publik**: Fitur pengumuman bergerak/banner penting yang dapat diaktifkan atau dinonaktifkan oleh Admin untuk tampil pada halaman depan mahasiswa.
+- 🔑 **Fitur 'Ingat Saya' (Remember Me)**: Login dosen persisten dengan token enkripsi agar tidak perlu login berulang.
+- 📱 **Fully Mobile Responsive**: Desain antarmuka fleksibel dengan menu navigasi hamburger pada perangkat ponsel/HP.
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+---
 
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+## 🛠️ Teknologi yang Digunakan
 
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
+- **Backend**: PHP 8.2+, Laravel 11 Framework
+- **Frontend**: Blade Templating, Tailwind CSS, Alpine.js, Lucide Icons
+- **Database**: SQLite / MySQL
+- **Integrasi API**: Open API Hari Libur Nasional Indonesia (`guangrei/APIHariLibur_V2`)
 
-## Agentic Development
+---
 
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
+## 🚀 Panduan Instalasi & Jalankan Aplikasi (How to Setup and Run)
 
+Prasyarat sebelum menginstal:
+- PHP >= 8.2
+- Composer
+- Node.js & NPM
+- XAMPP / web server lokal (opsional)
+
+### 1. Clone Repository
 ```bash
-composer require laravel/boost --dev
-
-php artisan boost:install
+git clone https://github.com/RCE-EAST-JAVA/Booiking-Appointment.git
+cd Booiking-Appointment
 ```
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
+### 2. Instal Dependensi Composer & NPM
+```bash
+composer install
+npm install
+```
 
-## Contributing
+### 3. Salin Environment File & Generate Key
+```bash
+cp .env.example .env
+php artisan key:generate
+```
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+### 4. Konfigurasi Database & Jalankan Migration + Seeder
+Pastikan file database SQLite (`database/database.sqlite`) telah dibuat atau disesuaikan pada `.env`, lalu jalankan command berikut untuk membuat tabel dan data dummy:
+```bash
+php artisan migrate:fresh --seed
+```
 
-## Code of Conduct
+### 5. Jalankan Local Development Server
+```bash
+php artisan serve
+```
+Aplikasi dapat diakses di browser melalui link: **`http://127.0.0.1:8000`**
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+---
 
-## Security Vulnerabilities
+## 🔐 Kredensial Login Admin Default
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+Gunakan kredensial berikut untuk masuk ke Portal Dosen/Admin:
 
-## License
+| Parameter | Value |
+| --- | --- |
+| **URL Login Admin** | `http://127.0.0.1:8000/admin/login` |
+| **Username** | `honest` |
+| **Password** | `honest2026` |
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+---
+
+## 📄 Lisensi
+Hak Cipta &copy; {{ date('Y') }} Sistem Informasi Manajemen Bimbingan & Janji Temu Akademik. Dikembangkan di bawah lisensi MIT.
