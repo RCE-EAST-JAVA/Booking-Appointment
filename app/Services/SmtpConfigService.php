@@ -21,8 +21,8 @@ class SmtpConfigService
         Config::set('mail.mailers.smtp.password', $setting->password);
         
         $scheme = match(strtolower($setting->encryption ?? 'tls')) {
-            'ssl' => 'ssl',
-            'tls' => 'tls',
+            'ssl' => 'smtps',
+            'tls' => null, // Symfony Mailer upgrades to STARTTLS automatically on port 587 when scheme is null
             default => null,
         };
 
