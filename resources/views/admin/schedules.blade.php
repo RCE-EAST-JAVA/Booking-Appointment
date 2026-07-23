@@ -53,7 +53,7 @@
         this.rescheduleDateBlocked = false;
         this.rescheduleSlots = [];
 
-        fetch(`{{ route('student.available-slots') }}?date=${this.proposedDate}`)
+        fetch(`{{ route('student.available-slots', [], false) }}?date=${this.proposedDate}`)
             .then(res => res.json())
             .then(data => {
                 this.loadingRescheduleSlots = false;
@@ -96,7 +96,7 @@
         this.actionLoadingId = id;
         let csrf = '{{ csrf_token() }}';
         try {
-            let res = await fetch(`{{ url('/admin/appointments') }}/${id}/approve`, {
+            let res = await fetch(`{{ url('/admin/appointments', [], false) }}/${id}/approve`, {
                 method: 'POST',
                 headers: {
                     'X-CSRF-TOKEN': csrf,
@@ -124,7 +124,7 @@
         this.actionLoadingId = id;
         let csrf = '{{ csrf_token() }}';
         try {
-            let res = await fetch(`{{ url('/admin/appointments') }}/${id}/complete`, {
+            let res = await fetch(`{{ url('/admin/appointments', [], false) }}/${id}/complete`, {
                 method: 'POST',
                 headers: {
                     'X-CSRF-TOKEN': csrf,
@@ -155,7 +155,7 @@
         formData.append('reason', this.rejectReason);
 
         try {
-            let res = await fetch(`{{ url('/admin/appointments') }}/${id}/reject`, {
+            let res = await fetch(`{{ url('/admin/appointments', [], false) }}/${id}/reject`, {
                 method: 'POST',
                 headers: {
                     'X-CSRF-TOKEN': csrf,
@@ -190,7 +190,7 @@
         formData.append('reason', this.rescheduleReason);
 
         try {
-            let res = await fetch(`{{ url('/admin/appointments') }}/${id}/reschedule`, {
+            let res = await fetch(`{{ url('/admin/appointments', [], false) }}/${id}/reschedule`, {
                 method: 'POST',
                 headers: {
                     'X-CSRF-TOKEN': csrf,
@@ -219,7 +219,7 @@
     fetchMonth(month) {
         this.loadingCalendar = true;
         this.currentMonth = month;
-        fetch(`{{ route('admin.calendar.month-data') }}?month=${month}`)
+        fetch(`{{ route('admin.calendar.month-data', [], false) }}?month=${month}`)
             .then(res => res.json())
             .then(data => {
                 this.monthName = data.month_name;
@@ -260,7 +260,7 @@
         this.syncingHolidays = true;
         let csrf = '{{ csrf_token() }}';
 
-        fetch('{{ route('admin.sync-holidays') }}', {
+        fetch('{{ route('admin.sync-holidays', [], false) }}', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -319,7 +319,7 @@
         }
 
         let csrf = '{{ csrf_token() }}';
-        fetch('{{ route('admin.date-override.save') }}', {
+        fetch('{{ route('admin.date-override.save', [], false) }}', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -350,7 +350,7 @@
     resetDayOverride() {
         if (!confirm('Kembalikan pengaturan tanggal ini ke status default?')) return;
         let csrf = '{{ csrf_token() }}';
-        fetch('{{ route('admin.date-override.delete') }}', {
+        fetch('{{ route('admin.date-override.delete', [], false) }}', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',

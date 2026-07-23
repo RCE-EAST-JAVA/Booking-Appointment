@@ -19,7 +19,7 @@
              this.isBlocked = false;
              this.slots = [];
 
-             let url = `{{ route('student.available-slots') }}?date=${this.selectedDate}`;
+             let url = `{{ route('student.available-slots', [], false) }}?date=${this.selectedDate}`;
              if (this.selectedLecturer) {
                  url += `&user_id=${this.selectedLecturer}`;
              }
