@@ -58,8 +58,5 @@ class DatabaseSeeder extends Seeder
                 'is_active' => true,
             ]
         );
-
-        // 4. Appointment Seeder (Juli & Agustus 2026)
-        $this->call(AppointmentSeeder::class);
     }
 }
