@@ -4,370 +4,376 @@
 @section('header_title', 'Konfigurasi Jam Bimbingan & Kalender Libur')
 
 @section('content')
-<div class="space-y-8" x-data="{
-    activeTab: 'setting',
-    currentMonth: '{{ date('Y-m') }}',
-    monthName: '',
-    startDayOffset: 0,
-    days: [],
-    masterSlots: [],
-    loadingCalendar: true,
-    syncingHolidays: false,
+<script>
+document.addEventListener('alpine:init', () => {
+    Alpine.data('schedulesManager', () => ({
+        activeTab: 'setting',
+        currentMonth: '{{ date('Y-m') }}',
+        monthName: '',
+        startDayOffset: 0,
+        days: [],
+        masterSlots: [],
+        loadingCalendar: true,
+        syncingHolidays: false,
 
-    // Modal state for date override
-    modalOpen: false,
-    selectedDate: '',
-    formattedSelectedDate: '',
-    isAvailable: true,
-    reason: '',
-    unavailableSlots: [],
-    unavailableStart: '',
-    unavailableEnd: '',
-    unavailableRanges: [],
-    dayAppointments: [],
-    hasOverride: false,
+        // Modal state for date override
+        modalOpen: false,
+        selectedDate: '',
+        formattedSelectedDate: '',
+        isAvailable: true,
+        reason: '',
+        unavailableSlots: [],
+        unavailableStart: '',
+        unavailableEnd: '',
+        unavailableRanges: [],
+        dayAppointments: [],
+        hasOverride: false,
 
-    // Reschedule & Reject modal state for guest list
-    rejectModalOpen: false,
-    rescheduleModalOpen: false,
-    selectedId: null,
-    selectedCode: '',
-    selectedName: '',
-    rejectReason: '',
-    proposedDate: '{{ date('Y-m-d') }}',
-    proposedSlot: '09:00 - 10:00',
-    rescheduleReason: '',
+        // Reschedule & Reject modal state for guest list
+        rejectModalOpen: false,
+        rescheduleModalOpen: false,
+        selectedId: null,
+        selectedCode: '',
+        selectedName: '',
+        rejectReason: '',
+        proposedDate: '{{ date('Y-m-d') }}',
+        proposedSlot: '09:00 - 10:00',
+        rescheduleReason: '',
 
-    // Reschedule availability preview state
-    rescheduleSlots: [],
-    loadingRescheduleSlots: false,
-    rescheduleDateBlocked: false,
-    rescheduleBlockedReason: '',
+        // Reschedule availability preview state
+        rescheduleSlots: [],
+        loadingRescheduleSlots: false,
+        rescheduleDateBlocked: false,
+        rescheduleBlockedReason: '',
 
-    // AJAX loading state
-    actionLoadingId: null,
+        // AJAX loading state
+        actionLoadingId: null,
 
-    fetchRescheduleSlots() {
-        if (!this.proposedDate) return;
-        this.loadingRescheduleSlots = true;
-        this.rescheduleDateBlocked = false;
-        this.rescheduleSlots = [];
+        fetchRescheduleSlots() {
+            if (!this.proposedDate) return;
+            this.loadingRescheduleSlots = true;
+            this.rescheduleDateBlocked = false;
+            this.rescheduleSlots = [];
 
-        fetch(`{{ route('student.available-slots', [], false) }}?date=${this.proposedDate}`)
-            .then(res => res.json())
-            .then(data => {
-                this.loadingRescheduleSlots = false;
-                if (data.is_blocked) {
-                    this.rescheduleDateBlocked = true;
-                    this.rescheduleBlockedReason = data.reason;
-                } else {
-                    this.rescheduleSlots = data.slots;
-                    if (data.slots.length > 0 && (!this.proposedSlot || !data.slots.some(s => s.time_slot === this.proposedSlot))) {
-                        let avail = data.slots.find(s => s.is_available);
-                        if (avail) this.proposedSlot = avail.time_slot;
-                        else if (data.slots[0]) this.proposedSlot = data.slots[0].time_slot;
+            fetch(`{{ route('student.available-slots', [], false) }}?date=${this.proposedDate}`)
+                .then(res => res.json())
+                .then(data => {
+                    this.loadingRescheduleSlots = false;
+                    if (data.is_blocked) {
+                        this.rescheduleDateBlocked = true;
+                        this.rescheduleBlockedReason = data.reason;
+                    } else {
+                        this.rescheduleSlots = data.slots;
+                        if (data.slots.length > 0 && (!this.proposedSlot || !data.slots.some(s => s.time_slot === this.proposedSlot))) {
+                            let avail = data.slots.find(s => s.is_available);
+                            if (avail) this.proposedSlot = avail.time_slot;
+                            else if (data.slots[0]) this.proposedSlot = data.slots[0].time_slot;
+                        }
                     }
+                })
+                .catch(err => {
+                    this.loadingRescheduleSlots = false;
+                });
+        },
+
+        openRejectModal(id, code, name) {
+            this.selectedId = id;
+            this.selectedCode = code;
+            this.selectedName = name;
+            this.rejectReason = '';
+            this.rejectModalOpen = true;
+        },
+
+        openRescheduleModal(id, code, name, currentDate) {
+            this.selectedId = id;
+            this.selectedCode = code;
+            this.selectedName = name;
+            this.rescheduleReason = '';
+            this.proposedDate = currentDate || '{{ date('Y-m-d') }}';
+            this.rescheduleModalOpen = true;
+            this.fetchRescheduleSlots();
+        },
+
+        async approveAppointment(id) {
+            this.actionLoadingId = id;
+            let csrf = '{{ csrf_token() }}';
+            try {
+                let res = await fetch(`{{ url('/admin/appointments', [], false) }}/${id}/approve`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': csrf,
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                });
+                this.actionLoadingId = null;
+                let el = document.getElementById('status-badge-' + id);
+                if (el) {
+                    el.className = 'inline-flex items-center px-2.5 py-1 rounded-full font-bold text-[10px] border bg-emerald-50 text-emerald-700 border-emerald-200';
+                    el.innerText = 'Disetujui';
                 }
+                let actionsEl = document.getElementById('action-buttons-' + id);
+                if (actionsEl) {
+                    actionsEl.innerHTML = `<button type="button" @click="completeAppointment(${id})" class="px-2.5 py-1.5 bg-slate-900 hover:bg-slate-800 text-white rounded-lg font-bold text-[11px]">Selesai</button>`;
+                }
+            } catch(e) {
+                this.actionLoadingId = null;
+                alert('Gagal memproses permohonan.');
+            }
+        },
+
+        async completeAppointment(id) {
+            this.actionLoadingId = id;
+            let csrf = '{{ csrf_token() }}';
+            try {
+                let res = await fetch(`{{ url('/admin/appointments', [], false) }}/${id}/complete`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': csrf,
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                });
+                this.actionLoadingId = null;
+                let el = document.getElementById('status-badge-' + id);
+                if (el) {
+                    el.className = 'inline-flex items-center px-2.5 py-1 rounded-full font-bold text-[10px] border bg-blue-50 text-blue-700 border-blue-200';
+                    el.innerText = 'Selesai';
+                }
+                let actionsEl = document.getElementById('action-buttons-' + id);
+                if (actionsEl) actionsEl.innerHTML = '';
+            } catch(e) {
+                this.actionLoadingId = null;
+                alert('Gagal memproses permohonan.');
+            }
+        },
+
+        async submitReject() {
+            if (!this.selectedId) return;
+            let id = this.selectedId;
+            this.actionLoadingId = id;
+            let csrf = '{{ csrf_token() }}';
+            let formData = new FormData();
+            formData.append('reason', this.rejectReason);
+
+            try {
+                let res = await fetch(`{{ url('/admin/appointments', [], false) }}/${id}/reject`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': csrf,
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    body: formData
+                });
+                this.rejectModalOpen = false;
+                this.actionLoadingId = null;
+                let el = document.getElementById('status-badge-' + id);
+                if (el) {
+                    el.className = 'inline-flex items-center px-2.5 py-1 rounded-full font-bold text-[10px] border bg-rose-50 text-rose-700 border-rose-200';
+                    el.innerText = 'Ditolak';
+                }
+                let actionsEl = document.getElementById('action-buttons-' + id);
+                if (actionsEl) actionsEl.innerHTML = '';
+            } catch(e) {
+                this.actionLoadingId = null;
+                alert('Gagal menolak janji.');
+            }
+        },
+
+        async submitReschedule() {
+            if (!this.selectedId) return;
+            let id = this.selectedId;
+            this.actionLoadingId = id;
+            let csrf = '{{ csrf_token() }}';
+            let formData = new FormData();
+            formData.append('proposed_date', this.proposedDate);
+            formData.append('proposed_time_slot', this.proposedSlot);
+            formData.append('reason', this.rescheduleReason);
+
+            try {
+                let res = await fetch(`{{ url('/admin/appointments', [], false) }}/${id}/reschedule`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': csrf,
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    body: formData
+                });
+                this.rescheduleModalOpen = false;
+                this.actionLoadingId = null;
+                let el = document.getElementById('status-badge-' + id);
+                if (el) {
+                    el.className = 'inline-flex items-center px-2.5 py-1 rounded-full font-bold text-[10px] border bg-indigo-50 text-indigo-700 border-indigo-200';
+                    el.innerText = 'Rescheduled';
+                }
+                let dateEl = document.getElementById('date-slot-' + id);
+                if (dateEl) {
+                    dateEl.innerHTML = `<div class="font-bold text-slate-900">${this.proposedDate}</div><div class="text-indigo-600 font-semibold text-[11px]">${this.proposedSlot} WIB</div>`;
+                }
+            } catch(e) {
+                this.actionLoadingId = null;
+                alert('Gagal mengirim usulan reschedule.');
+            }
+        },
+
+        fetchMonth(month) {
+            this.loadingCalendar = true;
+            this.currentMonth = month;
+            fetch(`{{ route('admin.calendar.month-data', [], false) }}?month=${month}`)
+                .then(res => res.json())
+                .then(data => {
+                    this.monthName = data.month_name;
+                    this.startDayOffset = data.start_day_of_week - 1;
+                    this.days = data.days;
+                    this.masterSlots = data.master_slots;
+                    this.loadingCalendar = false;
+                })
+                .catch(err => {
+                    console.error('Failed fetching calendar:', err);
+                    this.loadingCalendar = false;
+                });
+        },
+
+        prevMonth() {
+            let parts = this.currentMonth.split('-');
+            let d = new Date(parts[0], parts[1] - 2, 1);
+            let m = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+            this.fetchMonth(m);
+        },
+
+        nextMonth() {
+            let parts = this.currentMonth.split('-');
+            let d = new Date(parts[0], parts[1], 1);
+            let m = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+            this.fetchMonth(m);
+        },
+
+        todayMonth() {
+            let now = new Date();
+            let m = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');
+            this.fetchMonth(m);
+        },
+
+        syncHolidays() {
+            let year = this.currentMonth.split('-')[0];
+            if (!confirm(`Sinkronkan tanggal merah & libur nasional Indonesia tahun ${year} dari Open API?`)) return;
+            this.syncingHolidays = true;
+            let csrf = '{{ csrf_token() }}';
+
+            fetch('{{ route('admin.sync-holidays', [], false) }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': csrf,
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify({ year: year })
             })
-            .catch(err => {
-                this.loadingRescheduleSlots = false;
-            });
-    },
-
-    openRejectModal(id, code, name) {
-        this.selectedId = id;
-        this.selectedCode = code;
-        this.selectedName = name;
-        this.rejectReason = '';
-        this.rejectModalOpen = true;
-    },
-
-    openRescheduleModal(id, code, name, currentDate) {
-        this.selectedId = id;
-        this.selectedCode = code;
-        this.selectedName = name;
-        this.rescheduleReason = '';
-        this.proposedDate = currentDate || '{{ date('Y-m-d') }}';
-        this.rescheduleModalOpen = true;
-        this.fetchRescheduleSlots();
-    },
-
-    async approveAppointment(id) {
-        this.actionLoadingId = id;
-        let csrf = '{{ csrf_token() }}';
-        try {
-            let res = await fetch(`{{ url('/admin/appointments', [], false) }}/${id}/approve`, {
-                method: 'POST',
-                headers: {
-                    'X-CSRF-TOKEN': csrf,
-                    'Accept': 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest'
-                }
-            });
-            this.actionLoadingId = null;
-            let el = document.getElementById('status-badge-' + id);
-            if (el) {
-                el.className = 'inline-flex items-center px-2.5 py-1 rounded-full font-bold text-[10px] border bg-emerald-50 text-emerald-700 border-emerald-200';
-                el.innerText = 'Disetujui';
-            }
-            let actionsEl = document.getElementById('action-buttons-' + id);
-            if (actionsEl) {
-                actionsEl.innerHTML = `<button type="button" @click="completeAppointment(${id})" class="px-2.5 py-1.5 bg-slate-900 hover:bg-slate-800 text-white rounded-lg font-bold text-[11px]">Selesai</button>`;
-            }
-        } catch(e) {
-            this.actionLoadingId = null;
-            alert('Gagal memproses permohonan.');
-        }
-    },
-
-    async completeAppointment(id) {
-        this.actionLoadingId = id;
-        let csrf = '{{ csrf_token() }}';
-        try {
-            let res = await fetch(`{{ url('/admin/appointments', [], false) }}/${id}/complete`, {
-                method: 'POST',
-                headers: {
-                    'X-CSRF-TOKEN': csrf,
-                    'Accept': 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest'
-                }
-            });
-            this.actionLoadingId = null;
-            let el = document.getElementById('status-badge-' + id);
-            if (el) {
-                el.className = 'inline-flex items-center px-2.5 py-1 rounded-full font-bold text-[10px] border bg-blue-50 text-blue-700 border-blue-200';
-                el.innerText = 'Selesai';
-            }
-            let actionsEl = document.getElementById('action-buttons-' + id);
-            if (actionsEl) actionsEl.innerHTML = '';
-        } catch(e) {
-            this.actionLoadingId = null;
-            alert('Gagal memproses permohonan.');
-        }
-    },
-
-    async submitReject() {
-        if (!this.selectedId) return;
-        let id = this.selectedId;
-        this.actionLoadingId = id;
-        let csrf = '{{ csrf_token() }}';
-        let formData = new FormData();
-        formData.append('reason', this.rejectReason);
-
-        try {
-            let res = await fetch(`{{ url('/admin/appointments', [], false) }}/${id}/reject`, {
-                method: 'POST',
-                headers: {
-                    'X-CSRF-TOKEN': csrf,
-                    'Accept': 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest'
-                },
-                body: formData
-            });
-            this.rejectModalOpen = false;
-            this.actionLoadingId = null;
-            let el = document.getElementById('status-badge-' + id);
-            if (el) {
-                el.className = 'inline-flex items-center px-2.5 py-1 rounded-full font-bold text-[10px] border bg-rose-50 text-rose-700 border-rose-200';
-                el.innerText = 'Ditolak';
-            }
-            let actionsEl = document.getElementById('action-buttons-' + id);
-            if (actionsEl) actionsEl.innerHTML = '';
-        } catch(e) {
-            this.actionLoadingId = null;
-            alert('Gagal menolak janji.');
-        }
-    },
-
-    async submitReschedule() {
-        if (!this.selectedId) return;
-        let id = this.selectedId;
-        this.actionLoadingId = id;
-        let csrf = '{{ csrf_token() }}';
-        let formData = new FormData();
-        formData.append('proposed_date', this.proposedDate);
-        formData.append('proposed_time_slot', this.proposedSlot);
-        formData.append('reason', this.rescheduleReason);
-
-        try {
-            let res = await fetch(`{{ url('/admin/appointments', [], false) }}/${id}/reschedule`, {
-                method: 'POST',
-                headers: {
-                    'X-CSRF-TOKEN': csrf,
-                    'Accept': 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest'
-                },
-                body: formData
-            });
-            this.rescheduleModalOpen = false;
-            this.actionLoadingId = null;
-            let el = document.getElementById('status-badge-' + id);
-            if (el) {
-                el.className = 'inline-flex items-center px-2.5 py-1 rounded-full font-bold text-[10px] border bg-indigo-50 text-indigo-700 border-indigo-200';
-                el.innerText = 'Rescheduled';
-            }
-            let dateEl = document.getElementById('date-slot-' + id);
-            if (dateEl) {
-                dateEl.innerHTML = `<div class="font-bold text-slate-900">${this.proposedDate}</div><div class="text-indigo-600 font-semibold text-[11px]">${this.proposedSlot} WIB</div>`;
-            }
-        } catch(e) {
-            this.actionLoadingId = null;
-            alert('Gagal mengirim usulan reschedule.');
-        }
-    },
-
-    fetchMonth(month) {
-        this.loadingCalendar = true;
-        this.currentMonth = month;
-        fetch(`{{ route('admin.calendar.month-data', [], false) }}?month=${month}`)
             .then(res => res.json())
             .then(data => {
-                this.monthName = data.month_name;
-                this.startDayOffset = data.start_day_of_week - 1; // 1 (Mon) -> 0 offset
-                this.days = data.days;
-                this.masterSlots = data.master_slots;
-                this.loadingCalendar = false;
+                this.syncingHolidays = false;
+                alert(data.message);
+                this.fetchMonth(this.currentMonth);
             })
             .catch(err => {
-                console.error('Failed fetching calendar:', err);
-                this.loadingCalendar = false;
+                this.syncingHolidays = false;
+                alert('Gagal menghubungkan ke Open API Tanggal Merah.');
             });
-    },
+        },
 
-    prevMonth() {
-        let parts = this.currentMonth.split('-');
-        let d = new Date(parts[0], parts[1] - 2, 1);
-        let m = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
-        this.fetchMonth(m);
-    },
+        openDayModal(dayObj) {
+            this.selectedDate = dayObj.date;
+            let d = new Date(dayObj.date + 'T00:00:00');
+            let options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+            this.formattedSelectedDate = d.toLocaleDateString('id-ID', options);
+            
+            this.isAvailable = dayObj.is_available;
+            this.reason = dayObj.reason || '';
+            this.unavailableSlots = Array.isArray(dayObj.unavailable_slots) ? [...dayObj.unavailable_slots] : [];
+            this.unavailableStart = dayObj.unavailable_start || '';
+            this.unavailableEnd = dayObj.unavailable_end || '';
+            this.unavailableRanges = Array.isArray(dayObj.unavailable_ranges) ? JSON.parse(JSON.stringify(dayObj.unavailable_ranges)) : [];
+            this.dayAppointments = Array.isArray(dayObj.appointments) ? [...dayObj.appointments] : [];
+            this.hasOverride = dayObj.has_override;
+            
+            this.modalOpen = true;
+        },
 
-    nextMonth() {
-        let parts = this.currentMonth.split('-');
-        let d = new Date(parts[0], parts[1], 1);
-        let m = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
-        this.fetchMonth(m);
-    },
+        saveDayOverride() {
+            if (this.unavailableStart && this.unavailableEnd && this.unavailableStart >= this.unavailableEnd) {
+                alert('Jam mulai tidak boleh lebih lambat atau sama dengan jam selesai!');
+                return;
+            }
 
-    todayMonth() {
-        let now = new Date();
-        let m = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');
-        this.fetchMonth(m);
-    },
-
-    syncHolidays() {
-        let year = this.currentMonth.split('-')[0];
-        if (!confirm(`Sinkronkan tanggal merah & libur nasional Indonesia tahun ${year} dari Open API?`)) return;
-        this.syncingHolidays = true;
-        let csrf = '{{ csrf_token() }}';
-
-        fetch('{{ route('admin.sync-holidays', [], false) }}', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': csrf,
-                'Accept': 'application/json'
-            },
-            body: JSON.stringify({ year: year })
-        })
-        .then(res => res.json())
-        .then(data => {
-            this.syncingHolidays = false;
-            alert(data.message);
-            this.fetchMonth(this.currentMonth);
-        })
-        .catch(err => {
-            this.syncingHolidays = false;
-            alert('Gagal menghubungkan ke Open API Tanggal Merah.');
-        });
-    },
-
-    openDayModal(dayObj) {
-        this.selectedDate = dayObj.date;
-        let d = new Date(dayObj.date + 'T00:00:00');
-        let options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-        this.formattedSelectedDate = d.toLocaleDateString('id-ID', options);
-        
-        this.isAvailable = dayObj.is_available;
-        this.reason = dayObj.reason || '';
-        this.unavailableSlots = Array.isArray(dayObj.unavailable_slots) ? [...dayObj.unavailable_slots] : [];
-        this.unavailableStart = dayObj.unavailable_start || '';
-        this.unavailableEnd = dayObj.unavailable_end || '';
-        this.unavailableRanges = Array.isArray(dayObj.unavailable_ranges) ? JSON.parse(JSON.stringify(dayObj.unavailable_ranges)) : [];
-        this.dayAppointments = Array.isArray(dayObj.appointments) ? [...dayObj.appointments] : [];
-        this.hasOverride = dayObj.has_override;
-        
-        this.modalOpen = true;
-    },
-
-    saveDayOverride() {
-        if (this.unavailableStart && this.unavailableEnd && this.unavailableStart >= this.unavailableEnd) {
-            alert('Jam mulai tidak boleh lebih lambat atau sama dengan jam selesai!');
-            return;
-        }
-
-        for (let i = 0; i < this.unavailableRanges.length; i++) {
-            let r = this.unavailableRanges[i];
-            if (r.start && r.end) {
-                if (r.start >= r.end) {
-                    alert(`Jam mulai (${r.start}) tidak boleh lebih lambat atau sama dengan jam selesai (${r.end}) pada baris ke-${i + 1}!`);
+            for (let i = 0; i < this.unavailableRanges.length; i++) {
+                let r = this.unavailableRanges[i];
+                if (r.start && r.end) {
+                    if (r.start >= r.end) {
+                        alert(`Jam mulai (${r.start}) tidak boleh lebih lambat atau sama dengan jam selesai (${r.end}) pada baris ke-${i + 1}!`);
+                        return;
+                    }
+                } else {
+                    alert(`Harap isi lengkap jam mulai dan jam selesai pada baris ke-${i + 1}!`);
                     return;
                 }
-            } else {
-                alert(`Harap isi lengkap jam mulai dan jam selesai pada baris ke-${i + 1}!`);
-                return;
             }
+
+            let csrf = '{{ csrf_token() }}';
+            fetch('{{ route('admin.date-override.save', [], false) }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': csrf,
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify({
+                    date: this.selectedDate,
+                    is_available: this.isAvailable ? 1 : 0,
+                    reason: this.reason,
+                    unavailable_slots: this.unavailableSlots,
+                    unavailable_start: this.unavailableStart || null,
+                    unavailable_end: this.unavailableEnd || null,
+                    unavailable_ranges: this.unavailableRanges
+                })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success === false) {
+                    alert(data.message);
+                    return;
+                }
+                this.modalOpen = false;
+                this.fetchMonth(this.currentMonth);
+            });
+        },
+
+        resetDayOverride() {
+            if (!confirm('Kembalikan pengaturan tanggal ini ke status default?')) return;
+            let csrf = '{{ csrf_token() }}';
+            fetch('{{ route('admin.date-override.delete', [], false) }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': csrf,
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify({
+                    date: this.selectedDate
+                })
+            })
+            .then(res => res.json())
+            .then(data => {
+                this.modalOpen = false;
+                this.fetchMonth(this.currentMonth);
+            });
         }
+    }));
+});
+</script>
 
-        let csrf = '{{ csrf_token() }}';
-        fetch('{{ route('admin.date-override.save', [], false) }}', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': csrf,
-                'Accept': 'application/json'
-            },
-            body: JSON.stringify({
-                date: this.selectedDate,
-                is_available: this.isAvailable ? 1 : 0,
-                reason: this.reason,
-                unavailable_slots: this.unavailableSlots,
-                unavailable_start: this.unavailableStart || null,
-                unavailable_end: this.unavailableEnd || null,
-                unavailable_ranges: this.unavailableRanges
-            })
-        })
-        .then(res => res.json())
-        .then(data => {
-            if (data.success === false) {
-                alert(data.message);
-                return;
-            }
-            this.modalOpen = false;
-            this.fetchMonth(this.currentMonth);
-        });
-    },
-
-    resetDayOverride() {
-        if (!confirm('Kembalikan pengaturan tanggal ini ke status default?')) return;
-        let csrf = '{{ csrf_token() }}';
-        fetch('{{ route('admin.date-override.delete', [], false) }}', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': csrf,
-                'Accept': 'application/json'
-            },
-            body: JSON.stringify({
-                date: this.selectedDate
-            })
-        })
-        .then(res => res.json())
-        .then(data => {
-            this.modalOpen = false;
-            this.fetchMonth(this.currentMonth);
-        });
-    }
-}" x-init="fetchMonth(currentMonth)">
+<div class="space-y-8" x-data="schedulesManager" x-init="fetchMonth(currentMonth)">
 
     <!-- TAB NAVIGATION BAR -->
     <div class="bg-white p-2 rounded-2xl border border-slate-200 shadow-xs flex flex-wrap items-center justify-between gap-3">
