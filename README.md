@@ -47,8 +47,8 @@ Prasyarat sebelum menginstal:
 
 ### 1. Clone Repository
 ```bash
-git clone https://github.com/RCE-EAST-JAVA/Booiking-Appointment.git
-cd Booiking-Appointment
+git clone https://github.com/RCE-EAST-JAVA/Booking-Appointment.git
+cd Booking-Appointment
 ```
 
 ### 2. Instal Dependensi Composer & NPM
