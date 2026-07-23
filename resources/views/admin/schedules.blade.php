@@ -808,18 +808,18 @@ document.addEventListener('alpine:init', () => {
 
     <!-- MODAL OVERRIDE TANGGAL & JAM UN-AVAILABLE -->
     <div x-show="modalOpen" x-cloak 
-         class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
+         class="fixed inset-0 z-[100] overflow-y-auto bg-slate-900/60 backdrop-blur-xs p-4 sm:p-6 flex items-center justify-center min-h-screen">
         
         <div @click.outside="modalOpen = false" 
-             class="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-lg w-full overflow-hidden flex flex-col max-h-[90vh]">
+             class="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-lg w-full overflow-hidden flex flex-col max-h-[85vh] my-auto relative z-10">
             
             <!-- Modal Header -->
-            <div class="p-6 border-b border-slate-100 bg-slate-50/80 flex items-center justify-between flex-shrink-0">
+            <div class="p-5 border-b border-slate-100 bg-slate-50 flex items-center justify-between flex-shrink-0">
                 <div>
-                    <span class="text-xs font-bold text-brand-600 uppercase tracking-wider block">Setting Tanggal Khusus</span>
-                    <h3 class="text-base font-extrabold text-slate-900" x-text="formattedSelectedDate"></h3>
+                    <span class="text-[11px] font-extrabold text-brand-600 uppercase tracking-wider block">Setting Tanggal Khusus</span>
+                    <h3 class="text-sm font-extrabold text-slate-900" x-text="formattedSelectedDate"></h3>
                 </div>
-                <button @click="modalOpen = false" class="text-slate-400 hover:text-slate-700">
+                <button @click="modalOpen = false" class="text-slate-400 hover:text-slate-700 p-1 rounded-lg hover:bg-slate-200/60 transition-colors">
                     <i data-lucide="x" class="w-5 h-5"></i>
                 </button>
             </div>
@@ -982,8 +982,8 @@ document.addEventListener('alpine:init', () => {
 
 
     <!-- MODAL REJECT -->
-    <div x-show="rejectModalOpen" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
-        <div @click.outside="rejectModalOpen = false" class="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-md w-full p-6 space-y-4">
+    <div x-show="rejectModalOpen" x-cloak class="fixed inset-0 z-[100] overflow-y-auto bg-slate-900/60 backdrop-blur-xs p-4 flex items-center justify-center min-h-screen">
+        <div @click.outside="rejectModalOpen = false" class="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-md w-full p-6 space-y-4 my-auto">
             <h3 class="text-base font-bold text-slate-900">Tolak Janji Bimbingan</h3>
             <p class="text-xs text-slate-500">Berikan alasan penolakan untuk mahasiswa <strong x-text="selectedName"></strong> (<span x-text="selectedCode"></span>).</p>
             
@@ -999,8 +999,8 @@ document.addEventListener('alpine:init', () => {
 
 
     <!-- MODAL RESCHEDULE (LENGKAP DENGAN PREVIEW KUOTA & AVAILABILITY LIVE) -->
-    <div x-show="rescheduleModalOpen" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
-        <div @click.outside="rescheduleModalOpen = false" class="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-md w-full p-6 space-y-4">
+    <div x-show="rescheduleModalOpen" x-cloak class="fixed inset-0 z-[100] overflow-y-auto bg-slate-900/60 backdrop-blur-xs p-4 flex items-center justify-center min-h-screen">
+        <div @click.outside="rescheduleModalOpen = false" class="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-md w-full p-6 space-y-4 my-auto">
             <h3 class="text-base font-bold text-slate-900">Usulkan Jadwal Ulang (Reschedule)</h3>
             <p class="text-xs text-slate-500">Ajukan tanggal & jam pengganti untuk <strong x-text="selectedName"></strong> (<span x-text="selectedCode"></span>).</p>
             
