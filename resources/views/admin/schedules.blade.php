@@ -106,7 +106,12 @@ document.addEventListener('alpine:init', () => {
                         'X-Requested-With': 'XMLHttpRequest'
                     }
                 });
+                let data = await res.json();
                 this.actionLoadingId = null;
+                if (!res.ok || !data.success) {
+                    alert(data.message || 'Gagal memproses permohonan.');
+                    return;
+                }
                 let el = document.getElementById('status-badge-' + id);
                 if (el) {
                     el.className = 'inline-flex items-center px-2.5 py-1 rounded-full font-bold text-[10px] border bg-emerald-50 text-emerald-700 border-emerald-200';
@@ -116,9 +121,12 @@ document.addEventListener('alpine:init', () => {
                 if (actionsEl) {
                     actionsEl.innerHTML = `<button type="button" @click="completeAppointment(${id})" class="px-2.5 py-1.5 bg-slate-900 hover:bg-slate-800 text-white rounded-lg font-bold text-[11px]">Selesai</button>`;
                 }
+                if (data.message) {
+                    alert(data.message);
+                }
             } catch(e) {
                 this.actionLoadingId = null;
-                alert('Gagal memproses permohonan.');
+                alert('Gagal memproses permohonan: ' + e.message);
             }
         },
 
@@ -134,7 +142,12 @@ document.addEventListener('alpine:init', () => {
                         'X-Requested-With': 'XMLHttpRequest'
                     }
                 });
+                let data = await res.json();
                 this.actionLoadingId = null;
+                if (!res.ok || !data.success) {
+                    alert(data.message || 'Gagal menyelesaikan permohonan.');
+                    return;
+                }
                 let el = document.getElementById('status-badge-' + id);
                 if (el) {
                     el.className = 'inline-flex items-center px-2.5 py-1 rounded-full font-bold text-[10px] border bg-blue-50 text-blue-700 border-blue-200';
@@ -144,7 +157,7 @@ document.addEventListener('alpine:init', () => {
                 if (actionsEl) actionsEl.innerHTML = '';
             } catch(e) {
                 this.actionLoadingId = null;
-                alert('Gagal memproses permohonan.');
+                alert('Gagal memproses permohonan: ' + e.message);
             }
         },
 
@@ -166,8 +179,13 @@ document.addEventListener('alpine:init', () => {
                     },
                     body: formData
                 });
+                let data = await res.json();
                 this.rejectModalOpen = false;
                 this.actionLoadingId = null;
+                if (!res.ok || !data.success) {
+                    alert(data.message || 'Gagal menolak janji.');
+                    return;
+                }
                 let el = document.getElementById('status-badge-' + id);
                 if (el) {
                     el.className = 'inline-flex items-center px-2.5 py-1 rounded-full font-bold text-[10px] border bg-rose-50 text-rose-700 border-rose-200';
@@ -175,9 +193,12 @@ document.addEventListener('alpine:init', () => {
                 }
                 let actionsEl = document.getElementById('action-buttons-' + id);
                 if (actionsEl) actionsEl.innerHTML = '';
+                if (data.message) {
+                    alert(data.message);
+                }
             } catch(e) {
                 this.actionLoadingId = null;
-                alert('Gagal menolak janji.');
+                alert('Gagal menolak janji: ' + e.message);
             }
         },
 
@@ -201,8 +222,13 @@ document.addEventListener('alpine:init', () => {
                     },
                     body: formData
                 });
+                let data = await res.json();
                 this.rescheduleModalOpen = false;
                 this.actionLoadingId = null;
+                if (!res.ok || !data.success) {
+                    alert(data.message || 'Gagal mengirim usulan reschedule.');
+                    return;
+                }
                 let el = document.getElementById('status-badge-' + id);
                 if (el) {
                     el.className = 'inline-flex items-center px-2.5 py-1 rounded-full font-bold text-[10px] border bg-indigo-50 text-indigo-700 border-indigo-200';
@@ -212,9 +238,12 @@ document.addEventListener('alpine:init', () => {
                 if (dateEl) {
                     dateEl.innerHTML = `<div class="font-bold text-slate-900">${this.proposedDate}</div><div class="text-indigo-600 font-semibold text-[11px]">${this.proposedSlot} WIB</div>`;
                 }
+                if (data.message) {
+                    alert(data.message);
+                }
             } catch(e) {
                 this.actionLoadingId = null;
-                alert('Gagal mengirim usulan reschedule.');
+                alert('Gagal mengirim usulan reschedule: ' + e.message);
             }
         },
 
