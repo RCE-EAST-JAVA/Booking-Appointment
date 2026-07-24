@@ -32,7 +32,9 @@ class StudentController extends Controller
         ]);
 
         $date = Carbon::parse($request->date);
-        $userId = $request->user_id ?? User::where('sync_bimbingan', true)->where('role', '!=', 'admin')->first()?->id;
+        $userId = $request->user_id 
+            ?? User::where('sync_bimbingan', true)->where('role', '!=', 'admin')->first()?->id 
+            ?? User::first()?->id;
         $dateStr = $date->toDateString();
         $dayOfWeek = $date->dayOfWeek; // 0 (Sun) - 6 (Sat)
 
@@ -81,7 +83,11 @@ class StudentController extends Controller
         $schedules = Schedule::where('day_of_week', $dayOfWeek)
             ->where('is_active', true)
             ->where(function ($q) use ($userId) {
-                $q->whereNull('user_id')->orWhere('user_id', $userId);
+                if ($userId) {
+                    $q->whereNull('user_id')->orWhere('user_id', $userId);
+                } else {
+                    $q->whereNotNull('id'); // if no specific user, show all active schedules
+                }
             })
             ->get();
 
@@ -89,7 +95,11 @@ class StudentController extends Controller
         if ($schedules->isEmpty() && ($dayOfWeek === 0 || $dayOfWeek === 6)) {
             $schedules = Schedule::where('is_active', true)
                 ->where(function ($q) use ($userId) {
-                    $q->whereNull('user_id')->orWhere('user_id', $userId);
+                    if ($userId) {
+                        $q->whereNull('user_id')->orWhere('user_id', $userId);
+                    } else {
+                        $q->whereNotNull('id');
+                    }
                 })
                 ->get()
                 ->unique('time_slot');
@@ -181,7 +191,9 @@ class StudentController extends Controller
         ]);
 
         $date = Carbon::parse($validated['appointment_date'])->toDateString();
-        $userId = $validated['user_id'] ?? User::where('sync_bimbingan', true)->where('role', '!=', 'admin')->first()?->id;
+        $userId = $validated['user_id'] 
+            ?? User::where('sync_bimbingan', true)->where('role', '!=', 'admin')->first()?->id 
+            ?? User::first()?->id;
 
         // Verify DateOverride
         $override = DateOverride::whereDate('date', $date)
