@@ -98,7 +98,7 @@ document.addEventListener('alpine:init', () => {
             this.actionLoadingId = id;
             let csrf = '{{ csrf_token() }}';
             try {
-                let res = await fetch(`{{ url('/admin/appointments', [], false) }}/${id}/approve`, {
+                let res = await fetch(`/admin/appointments/${id}/approve`, {
                     method: 'POST',
                     headers: {
                         'X-CSRF-TOKEN': csrf,
@@ -134,7 +134,7 @@ document.addEventListener('alpine:init', () => {
             this.actionLoadingId = id;
             let csrf = '{{ csrf_token() }}';
             try {
-                let res = await fetch(`{{ url('/admin/appointments', [], false) }}/${id}/complete`, {
+                let res = await fetch(`/admin/appointments/${id}/complete`, {
                     method: 'POST',
                     headers: {
                         'X-CSRF-TOKEN': csrf,
@@ -170,7 +170,7 @@ document.addEventListener('alpine:init', () => {
             formData.append('reason', this.rejectReason);
 
             try {
-                let res = await fetch(`{{ url('/admin/appointments', [], false) }}/${id}/reject`, {
+                let res = await fetch(`/admin/appointments/${id}/reject`, {
                     method: 'POST',
                     headers: {
                         'X-CSRF-TOKEN': csrf,
@@ -213,7 +213,7 @@ document.addEventListener('alpine:init', () => {
             formData.append('reason', this.rescheduleReason);
 
             try {
-                let res = await fetch(`{{ url('/admin/appointments', [], false) }}/${id}/reschedule`, {
+                let res = await fetch(`/admin/appointments/${id}/reschedule`, {
                     method: 'POST',
                     headers: {
                         'X-CSRF-TOKEN': csrf,
