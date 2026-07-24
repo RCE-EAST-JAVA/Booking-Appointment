@@ -271,10 +271,10 @@ class StudentController extends Controller
                 $filePath = $request->file('attachment')->store('attachments', 'public');
             }
 
-            // Generate unique 7-digit alphanumeric booking code & token
+            // Generate unique 7-character alphanumeric booking code (must not be all numbers)
             do {
                 $bookingCode = strtoupper(Str::random(7));
-            } while (Appointment::where('booking_code', $bookingCode)->exists());
+            } while (ctype_digit($bookingCode) || Appointment::where('booking_code', $bookingCode)->exists());
             
             $token = Str::random(32);
 
