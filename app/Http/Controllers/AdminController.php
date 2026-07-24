@@ -68,6 +68,10 @@ class AdminController extends Controller
         $user = Auth::user();
         $query = Appointment::with('user');
 
+        if ($user && $user->role !== 'admin') {
+            $query->where('user_id', $user->id);
+        }
+
         // Apply filters
         if ($request->filled('date')) {
             $query->whereDate('appointment_date', $request->date);
@@ -89,18 +93,28 @@ class AdminController extends Controller
 
         $appointments = $query->latest()->paginate(15)->withQueryString();
 
+        // Base appointment query for logged in user scope
+        $baseStatQuery = Appointment::query();
+        if ($user && $user->role !== 'admin') {
+            $baseStatQuery->where('user_id', $user->id);
+        }
+
         // Statistics
         $stats = [
-            'today' => Appointment::whereDate('appointment_date', Carbon::today())->count(),
-            'pending' => Appointment::where('status', 'pending')->count(),
-            'approved' => Appointment::where('status', 'approved')->count(),
-            'rescheduled' => Appointment::where('status', 'rescheduled')->count(),
-            'completed' => Appointment::where('status', 'completed')->count(),
+            'today' => (clone $baseStatQuery)->whereDate('appointment_date', Carbon::today())->count(),
+            'pending' => (clone $baseStatQuery)->where('status', 'pending')->count(),
+            'approved' => (clone $baseStatQuery)->where('status', 'approved')->count(),
+            'rescheduled' => (clone $baseStatQuery)->where('status', 'rescheduled')->count(),
+            'completed' => (clone $baseStatQuery)->where('status', 'completed')->count(),
         ];
 
         // Calendar view data payload
-        $calendarEvents = Appointment::select('id', 'student_name', 'booking_code', 'appointment_date', 'time_slot', 'status', 'purpose')
-            ->get()
+        $calendarQuery = Appointment::select('id', 'student_name', 'booking_code', 'appointment_date', 'time_slot', 'status', 'purpose');
+        if ($user && $user->role !== 'admin') {
+            $calendarQuery->where('user_id', $user->id);
+        }
+
+        $calendarEvents = $calendarQuery->get()
             ->map(function ($apt) {
                 return [
                     'id' => $apt->id,
@@ -113,15 +127,19 @@ class AdminController extends Controller
             });
 
         // Today & Upcoming appointments overview
-        $todayAppointments = Appointment::with('user')
-            ->whereDate('appointment_date', Carbon::today())
-            ->orderBy('time_slot')
-            ->get();
+        $todayQuery = Appointment::with('user')->whereDate('appointment_date', Carbon::today());
+        if ($user && $user->role !== 'admin') {
+            $todayQuery->where('user_id', $user->id);
+        }
+        $todayAppointments = $todayQuery->orderBy('time_slot')->get();
 
-        $upcomingAppointments = Appointment::with('user')
+        $upcomingQuery = Appointment::with('user')
             ->whereDate('appointment_date', '>', Carbon::today())
-            ->whereIn('status', ['pending', 'approved', 'rescheduled'])
-            ->orderBy('appointment_date', 'asc')
+            ->whereIn('status', ['pending', 'approved', 'rescheduled']);
+        if ($user && $user->role !== 'admin') {
+            $upcomingQuery->where('user_id', $user->id);
+        }
+        $upcomingAppointments = $upcomingQuery->orderBy('appointment_date', 'asc')
             ->orderBy('time_slot', 'asc')
             ->take(10)
             ->get();
