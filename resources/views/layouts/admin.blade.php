@@ -204,6 +204,18 @@
                 </div>
             @endif
 
+            @if(session('warning'))
+                <div x-data="{ show: true }" x-show="show" class="mb-6 bg-amber-50 border border-amber-200 text-amber-900 px-4 py-3.5 rounded-xl flex items-center justify-between shadow-xs">
+                    <div class="flex items-center gap-2.5">
+                        <i data-lucide="alert-triangle" class="w-5 h-5 text-amber-600 flex-shrink-0"></i>
+                        <span class="text-sm font-semibold">{{ session('warning') }}</span>
+                    </div>
+                    <button @click="show = false" class="text-amber-500 hover:text-amber-800">
+                        <i data-lucide="x" class="w-4 h-4"></i>
+                    </button>
+                </div>
+            @endif
+
             @yield('content')
         </main>
     </div>

@@ -200,18 +200,27 @@ class AdminController extends Controller
                 'status' => 'approved',
             ]);
 
-            // Send email notification safely without breaking status update if mail server fails
+            $mailSent = false;
+            $emailError = null;
             try {
-                NotificationService::send($appointment->student_email, new AppointmentApprovedMail($appointment), $appointment->id);
+                $mailSent = NotificationService::send($appointment->student_email, new AppointmentApprovedMail($appointment), $appointment->id);
+                if (!$mailSent) {
+                    $emailError = EmailLog::where('appointment_id', $appointment->id)->latest()->first()?->error_message ?? 'Autentikasi/Koneksi SMTP gagal.';
+                }
             } catch (\Throwable $e) {
-                // Email log will capture the failure
+                $emailError = $e->getMessage();
+            }
+
+            $message = "Janji Bimbingan ({$appointment->booking_code}) berhasil disetujui.";
+            if (!$mailSent) {
+                $message .= " (Catatan: Email notifikasi gagal dikirim: {$emailError})";
             }
 
             if (request()->expectsJson() || request()->ajax()) {
-                return response()->json(['success' => true, 'message' => "Janji Bimbingan ({$appointment->booking_code}) berhasil disetujui."]);
+                return response()->json(['success' => true, 'message' => $message, 'mail_sent' => $mailSent]);
             }
 
-            return back()->with('success', "Janji Bimbingan ({$appointment->booking_code}) berhasil disetujui.");
+            return back()->with($mailSent ? 'success' : 'warning', $message);
         } catch (\Exception $e) {
             if (request()->expectsJson() || request()->ajax()) {
                 return response()->json(['success' => false, 'message' => 'Gagal menyetujui janji: ' . $e->getMessage()], 500);
@@ -233,18 +242,27 @@ class AdminController extends Controller
                 'reschedule_reason' => $request->reason,
             ]);
 
-            // Send email notification safely without breaking status update if mail server fails
+            $mailSent = false;
+            $emailError = null;
             try {
-                NotificationService::send($appointment->student_email, new AppointmentRejectedMail($appointment), $appointment->id);
+                $mailSent = NotificationService::send($appointment->student_email, new AppointmentRejectedMail($appointment), $appointment->id);
+                if (!$mailSent) {
+                    $emailError = EmailLog::where('appointment_id', $appointment->id)->latest()->first()?->error_message ?? 'Autentikasi/Koneksi SMTP gagal.';
+                }
             } catch (\Throwable $e) {
-                // Email log will capture the failure
+                $emailError = $e->getMessage();
+            }
+
+            $message = "Janji Bimbingan ({$appointment->booking_code}) telah ditolak.";
+            if (!$mailSent) {
+                $message .= " (Catatan: Email penolakan gagal dikirim: {$emailError})";
             }
 
             if ($request->expectsJson() || $request->ajax()) {
-                return response()->json(['success' => true, 'message' => "Janji Bimbingan ({$appointment->booking_code}) telah ditolak."]);
+                return response()->json(['success' => true, 'message' => $message, 'mail_sent' => $mailSent]);
             }
 
-            return back()->with('success', "Janji Bimbingan ({$appointment->booking_code}) telah ditolak.");
+            return back()->with($mailSent ? 'success' : 'warning', $message);
         } catch (\Exception $e) {
             if ($request->expectsJson() || $request->ajax()) {
                 return response()->json(['success' => false, 'message' => 'Gagal menolak janji: ' . $e->getMessage()], 500);
@@ -285,18 +303,27 @@ class AdminController extends Controller
                 'token' => Str::random(32), // ensure fresh token
             ]);
 
-            // Send email notification safely without breaking status update if mail server fails
+            $mailSent = false;
+            $emailError = null;
             try {
-                NotificationService::send($appointment->student_email, new AppointmentRescheduledMail($appointment), $appointment->id);
+                $mailSent = NotificationService::send($appointment->student_email, new AppointmentRescheduledMail($appointment), $appointment->id);
+                if (!$mailSent) {
+                    $emailError = EmailLog::where('appointment_id', $appointment->id)->latest()->first()?->error_message ?? 'Autentikasi/Koneksi SMTP gagal.';
+                }
             } catch (\Throwable $e) {
-                // Email log will capture the failure
+                $emailError = $e->getMessage();
+            }
+
+            $message = "Usulan perubahan jadwal untuk ({$appointment->booking_code}) berhasil disimpan.";
+            if (!$mailSent) {
+                $message .= " (Catatan: Email usulan reschedule gagal dikirim ke mahasiswa: {$emailError})";
             }
 
             if ($request->expectsJson() || $request->ajax()) {
-                return response()->json(['success' => true, 'message' => "Usulan perubahan jadwal untuk ({$appointment->booking_code}) berhasil dikirim ke mahasiswa."]);
+                return response()->json(['success' => true, 'message' => $message, 'mail_sent' => $mailSent]);
             }
 
-            return back()->with('success', "Usulan perubahan jadwal untuk ({$appointment->booking_code}) berhasil dikirim ke mahasiswa.");
+            return back()->with($mailSent ? 'success' : 'warning', $message);
         } catch (\Exception $e) {
             if ($request->expectsJson() || $request->ajax()) {
                 return response()->json(['success' => false, 'message' => 'Gagal mengirim usulan reschedule: ' . $e->getMessage()], 500);
