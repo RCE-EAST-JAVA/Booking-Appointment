@@ -82,25 +82,11 @@ class StudentController extends Controller
         // Fetch schedules
         $schedules = Schedule::where('day_of_week', $dayOfWeek)
             ->where('is_active', true)
-            ->where(function ($q) use ($userId) {
-                if ($userId) {
-                    $q->whereNull('user_id')->orWhere('user_id', $userId);
-                } else {
-                    $q->whereNotNull('id'); // if no specific user, show all active schedules
-                }
-            })
             ->get();
 
         // If weekend override is enabled but no weekend schedules defined, fallback to active schedules
         if ($schedules->isEmpty() && ($dayOfWeek === 0 || $dayOfWeek === 6)) {
             $schedules = Schedule::where('is_active', true)
-                ->where(function ($q) use ($userId) {
-                    if ($userId) {
-                        $q->whereNull('user_id')->orWhere('user_id', $userId);
-                    } else {
-                        $q->whereNotNull('id');
-                    }
-                })
                 ->get()
                 ->unique('time_slot');
         }
