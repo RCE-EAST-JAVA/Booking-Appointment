@@ -195,16 +195,17 @@ class AdminController extends Controller
     public function approveAppointment($id)
     {
         try {
-            $appointment = DB::transaction(function () use ($id) {
-                $appointment = Appointment::findOrFail($id);
-                $appointment->update([
-                    'status' => 'approved',
-                ]);
+            $appointment = Appointment::findOrFail($id);
+            $appointment->update([
+                'status' => 'approved',
+            ]);
 
+            // Send email notification safely without breaking status update if mail server fails
+            try {
                 NotificationService::send($appointment->student_email, new AppointmentApprovedMail($appointment), $appointment->id);
-
-                return $appointment;
-            });
+            } catch (\Throwable $e) {
+                // Email log will capture the failure
+            }
 
             if (request()->expectsJson() || request()->ajax()) {
                 return response()->json(['success' => true, 'message' => "Janji Bimbingan ({$appointment->booking_code}) berhasil disetujui."]);
@@ -226,17 +227,18 @@ class AdminController extends Controller
         ]);
 
         try {
-            $appointment = DB::transaction(function () use ($request, $id) {
-                $appointment = Appointment::findOrFail($id);
-                $appointment->update([
-                    'status' => 'rejected',
-                    'reschedule_reason' => $request->reason,
-                ]);
+            $appointment = Appointment::findOrFail($id);
+            $appointment->update([
+                'status' => 'rejected',
+                'reschedule_reason' => $request->reason,
+            ]);
 
+            // Send email notification safely without breaking status update if mail server fails
+            try {
                 NotificationService::send($appointment->student_email, new AppointmentRejectedMail($appointment), $appointment->id);
-
-                return $appointment;
-            });
+            } catch (\Throwable $e) {
+                // Email log will capture the failure
+            }
 
             if ($request->expectsJson() || $request->ajax()) {
                 return response()->json(['success' => true, 'message' => "Janji Bimbingan ({$appointment->booking_code}) telah ditolak."]);
@@ -273,22 +275,34 @@ class AdminController extends Controller
             'reason' => 'required|string|max:500',
         ]);
 
-        $appointment = Appointment::findOrFail($id);
-        $appointment->update([
-            'status' => 'rescheduled',
-            'proposed_date' => $request->proposed_date,
-            'proposed_time_slot' => $request->proposed_time_slot,
-            'reschedule_reason' => $request->reason,
-            'token' => Str::random(32), // ensure fresh token
-        ]);
+        try {
+            $appointment = Appointment::findOrFail($id);
+            $appointment->update([
+                'status' => 'rescheduled',
+                'proposed_date' => $request->proposed_date,
+                'proposed_time_slot' => $request->proposed_time_slot,
+                'reschedule_reason' => $request->reason,
+                'token' => Str::random(32), // ensure fresh token
+            ]);
 
-        NotificationService::send($appointment->student_email, new AppointmentRescheduledMail($appointment), $appointment->id);
+            // Send email notification safely without breaking status update if mail server fails
+            try {
+                NotificationService::send($appointment->student_email, new AppointmentRescheduledMail($appointment), $appointment->id);
+            } catch (\Throwable $e) {
+                // Email log will capture the failure
+            }
 
-        if ($request->expectsJson() || $request->ajax()) {
-            return response()->json(['success' => true, 'message' => "Usulan perubahan jadwal untuk ({$appointment->booking_code}) berhasil dikirim ke mahasiswa."]);
+            if ($request->expectsJson() || $request->ajax()) {
+                return response()->json(['success' => true, 'message' => "Usulan perubahan jadwal untuk ({$appointment->booking_code}) berhasil dikirim ke mahasiswa."]);
+            }
+
+            return back()->with('success', "Usulan perubahan jadwal untuk ({$appointment->booking_code}) berhasil dikirim ke mahasiswa.");
+        } catch (\Exception $e) {
+            if ($request->expectsJson() || $request->ajax()) {
+                return response()->json(['success' => false, 'message' => 'Gagal mengirim usulan reschedule: ' . $e->getMessage()], 500);
+            }
+            return back()->with('error', 'Gagal mengirim usulan reschedule: ' . $e->getMessage());
         }
-
-        return back()->with('success', "Usulan perubahan jadwal untuk ({$appointment->booking_code}) berhasil dikirim ke mahasiswa.");
     }
 
     // --- Schedules, Blocked Dates & Announcement ---
