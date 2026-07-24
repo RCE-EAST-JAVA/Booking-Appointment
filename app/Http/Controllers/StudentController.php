@@ -19,7 +19,7 @@ class StudentController extends Controller
 {
     public function index()
     {
-        $lecturers = User::where('role', '!=', 'admin')->get();
+        $lecturers = User::where('sync_bimbingan', true)->where('role', '!=', 'admin')->get();
         $announcement = Announcement::where('is_active', true)->first();
         return view('student.index', compact('lecturers', 'announcement'));
     }
@@ -32,7 +32,7 @@ class StudentController extends Controller
         ]);
 
         $date = Carbon::parse($request->date);
-        $userId = $request->user_id ?? User::where('role', '!=', 'admin')->first()?->id;
+        $userId = $request->user_id ?? User::where('sync_bimbingan', true)->where('role', '!=', 'admin')->first()?->id;
         $dateStr = $date->toDateString();
         $dayOfWeek = $date->dayOfWeek; // 0 (Sun) - 6 (Sat)
 
@@ -181,7 +181,7 @@ class StudentController extends Controller
         ]);
 
         $date = Carbon::parse($validated['appointment_date'])->toDateString();
-        $userId = $validated['user_id'] ?? User::where('role', '!=', 'admin')->first()?->id;
+        $userId = $validated['user_id'] ?? User::where('sync_bimbingan', true)->where('role', '!=', 'admin')->first()?->id;
 
         // Verify DateOverride
         $override = DateOverride::whereDate('date', $date)
