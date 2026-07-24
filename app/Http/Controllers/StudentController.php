@@ -28,7 +28,7 @@ class StudentController extends Controller
     {
         $request->validate([
             'date' => 'required|date|after_or_equal:today',
-            'user_id' => 'nullable|exists:users,id',
+            'user_id' => 'nullable|exists:rce_db.users,id',
         ]);
 
         $date = Carbon::parse($request->date);
@@ -173,7 +173,7 @@ class StudentController extends Controller
             'attachment' => 'nullable|file|mimes:pdf,doc,docx,png,jpg,jpeg|max:5120',
             'appointment_date' => 'required|date|after_or_equal:today',
             'time_slot' => 'required|string',
-            'user_id' => 'nullable|exists:users,id',
+            'user_id' => 'nullable|exists:rce_db.users,id',
         ]);
 
         $date = Carbon::parse($validated['appointment_date'])->toDateString();
