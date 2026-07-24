@@ -278,14 +278,12 @@ class AdminController extends Controller
             6 => 'Sabtu',
         ];
 
-        $announcement = Announcement::firstOrCreate(
-            ['user_id' => Auth::id()],
-            [
-                'is_active' => false,
-                'message' => 'Pengumuman: Harap membawa draf berkas/laporan fisik saat menghadiri sesi bimbingan.',
-                'type' => 'info',
-            ]
-        );
+        $announcement = Announcement::first() ?? Announcement::create([
+            'user_id' => null,
+            'is_active' => false,
+            'message' => 'Pengumuman: Harap membawa draf berkas/laporan fisik saat menghadiri sesi bimbingan.',
+            'type' => 'info',
+        ]);
 
         $query = Appointment::with('user');
 
@@ -391,13 +389,20 @@ class AdminController extends Controller
             'message' => 'nullable|string|max:1000',
         ]);
 
-        Announcement::updateOrCreate(
-            ['user_id' => Auth::id()],
-            [
+        $announcement = Announcement::first();
+        if ($announcement) {
+            $announcement->update([
                 'is_active' => $validated['is_active'],
                 'message' => $validated['message'],
-            ]
-        );
+            ]);
+        } else {
+            Announcement::create([
+                'user_id' => null,
+                'is_active' => $validated['is_active'],
+                'message' => $validated['message'],
+                'type' => 'info',
+            ]);
+        }
 
         return back()->with('success', 'Pengaturan pengumuman registrasi jadwal berhasil disimpan!');
     }
