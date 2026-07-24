@@ -556,13 +556,23 @@ class AdminController extends Controller
 
         try {
             $setting->save();
-        } catch (\Illuminate\Contracts\Encryption\DecryptException $e) {
-            // If decrypting previous password during model save event failed due to key change, re-set raw password attribute directly
+        } catch (\Throwable $e) {
             if (!empty($validated['password'])) {
-                $setting->password = $validated['password'];
-                $setting->save();
+                DB::table('smtp_settings')
+                    ->where('id', $setting->id)
+                    ->update([
+                        'host' => $validated['host'],
+                        'port' => $validated['port'],
+                        'username' => $validated['username'] ?? null,
+                        'password' => encrypt($validated['password']),
+                        'encryption' => $validated['encryption'],
+                        'from_email' => $validated['from_email'],
+                        'from_name' => $validated['from_name'],
+                        'is_active' => (bool)$validated['is_active'],
+                        'updated_at' => now(),
+                    ]);
             } else {
-                return back()->with('error', 'Gagal memperbarui pengaturan SMTP: Masukkan kembali Password SMTP Anda untuk memperbarui enkripsi kata sandi.');
+                return back()->with('error', 'Silakan isi kolom Password SMTP untuk memperbarui kata sandi enkripsi baru.');
             }
         }
 
