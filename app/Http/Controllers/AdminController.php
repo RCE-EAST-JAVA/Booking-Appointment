@@ -499,14 +499,26 @@ class AdminController extends Controller
     // --- SMTP Configuration Panel ---
     public function smtpIndex()
     {
-        $setting = SmtpSetting::first() ?? new SmtpSetting([
-            'host' => 'smtp.gmail.com',
-            'port' => 587,
-            'encryption' => 'tls',
-            'from_email' => 'no-reply@portal.ac.id',
-            'from_name' => 'Portal Bimbingan',
-            'is_active' => true,
-        ]);
+        try {
+            $setting = SmtpSetting::first();
+            if ($setting) {
+                // Access password property to trigger decryption check
+                $dummy = $setting->password;
+            }
+        } catch (\Throwable $e) {
+            $setting = SmtpSetting::first();
+        }
+
+        if (!$setting) {
+            $setting = new SmtpSetting([
+                'host' => 'smtp.gmail.com',
+                'port' => 587,
+                'encryption' => 'tls',
+                'from_email' => 'no-reply@portal.ac.id',
+                'from_name' => 'Portal Bimbingan',
+                'is_active' => true,
+            ]);
+        }
 
         $emailLogs = EmailLog::with('appointment')->latest()->take(20)->get();
 
@@ -540,8 +552,19 @@ class AdminController extends Controller
         $setting->encryption = $validated['encryption'];
         $setting->from_email = $validated['from_email'];
         $setting->from_name = $validated['from_name'];
-        $setting->is_active = $validated['is_active'];
-        $setting->save();
+        $setting->is_active = (bool)$validated['is_active'];
+
+        try {
+            $setting->save();
+        } catch (\Illuminate\Contracts\Encryption\DecryptException $e) {
+            // If decrypting previous password during model save event failed due to key change, re-set raw password attribute directly
+            if (!empty($validated['password'])) {
+                $setting->password = $validated['password'];
+                $setting->save();
+            } else {
+                return back()->with('error', 'Gagal memperbarui pengaturan SMTP: Masukkan kembali Password SMTP Anda untuk memperbarui enkripsi kata sandi.');
+            }
+        }
 
         return back()->with('success', 'Pengaturan SMTP server berhasil diperbarui!');
     }
