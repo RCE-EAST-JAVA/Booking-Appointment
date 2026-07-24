@@ -516,5 +516,96 @@
         </div>
     </div>
 
+    <!-- Mandatory Setup Guide Modal -->
+    @if(isset($showSetupModal) && $showSetupModal)
+    <div x-data="{ setupModalOpen: true }" x-show="setupModalOpen" x-cloak
+         class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-xs">
+        <div class="bg-white rounded-3xl max-w-lg w-full shadow-2xl border border-slate-100 overflow-hidden transform transition-all animate-in fade-in zoom-in duration-200">
+            <!-- Modal Header -->
+            <div class="bg-gradient-to-r from-brand-600 to-indigo-600 p-6 text-white relative">
+                <div class="flex items-center gap-3">
+                    <div class="w-12 h-12 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center text-white font-bold text-xl shadow-inner">
+                        <i data-lucide="sparkles" class="w-6 h-6"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-extrabold tracking-tight">Selamat Datang di Portal Bimbingan!</h3>
+                        <p class="text-xs text-brand-100 mt-0.5">Selesaikan 2 langkah konfigurasi dasar ini agar sistem bimbingan siap digunakan.</p>
+                    </div>
+                </div>
+                <button @click="setupModalOpen = false" class="absolute top-4 right-4 text-white/70 hover:text-white p-1 rounded-xl hover:bg-white/10 transition-colors">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+
+            <!-- Modal Body Checklist -->
+            <div class="p-6 space-y-4">
+                <div class="text-xs font-bold uppercase tracking-wider text-slate-400">Panduan Konfigurasi Wajib Akun Baru:</div>
+
+                <!-- Step 1: Profile -->
+                <div class="flex items-start gap-4 p-4 rounded-2xl border {{ $profileComplete ? 'bg-emerald-50/50 border-emerald-200' : 'bg-amber-50/50 border-amber-200' }} transition-all">
+                    <div class="w-8 h-8 rounded-xl {{ $profileComplete ? 'bg-emerald-500 text-white' : 'bg-amber-500 text-white' }} flex items-center justify-center flex-shrink-0 font-bold text-sm shadow-xs mt-0.5">
+                        @if($profileComplete)
+                            <i data-lucide="check" class="w-4 h-4"></i>
+                        @else
+                            1
+                        @endif
+                    </div>
+                    <div class="flex-grow min-w-0">
+                        <div class="flex items-center justify-between gap-2">
+                            <h4 class="text-sm font-bold text-slate-900">1. Lengkapi Profil Dosen</h4>
+                            @if($profileComplete)
+                                <span class="px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800 text-[10px] font-extrabold">Selesai</span>
+                            @else
+                                <span class="px-2 py-0.5 rounded-md bg-amber-100 text-amber-800 text-[10px] font-extrabold">Perlu Diisi</span>
+                            @endif
+                        </div>
+                        <p class="text-xs text-slate-600 mt-1 leading-relaxed">Isi nama lengkap & gelar Anda agar mahasiswa dapat memilih nama Anda di pilihan dosen tujuan bimbingan.</p>
+                        @if(!$profileComplete)
+                            <a href="{{ route('admin.profile.index') }}" class="inline-flex items-center gap-1.5 mt-2 text-xs font-bold text-amber-700 hover:text-amber-900 hover:underline">
+                                Lengkapi Profil Sekarang <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
+                            </a>
+                        @endif
+                    </div>
+                </div>
+
+                <!-- Step 2: SMTP -->
+                <div class="flex items-start gap-4 p-4 rounded-2xl border {{ $smtpComplete ? 'bg-emerald-50/50 border-emerald-200' : 'bg-amber-50/50 border-amber-200' }} transition-all">
+                    <div class="w-8 h-8 rounded-xl {{ $smtpComplete ? 'bg-emerald-500 text-white' : 'bg-amber-500 text-white' }} flex items-center justify-center flex-shrink-0 font-bold text-sm shadow-xs mt-0.5">
+                        @if($smtpComplete)
+                            <i data-lucide="check" class="w-4 h-4"></i>
+                        @else
+                            2
+                        @endif
+                    </div>
+                    <div class="flex-grow min-w-0">
+                        <div class="flex items-center justify-between gap-2">
+                            <h4 class="text-sm font-bold text-slate-900">2. Konfigurasi SMTP Email</h4>
+                            @if($smtpComplete)
+                                <span class="px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800 text-[10px] font-extrabold">Aktif</span>
+                            @else
+                                <span class="px-2 py-0.5 rounded-md bg-amber-100 text-amber-800 text-[10px] font-extrabold">Perlu Diisi</span>
+                            @endif
+                        </div>
+                        <p class="text-xs text-slate-600 mt-1 leading-relaxed">Atur server SMTP email untuk mengirimkan notifikasi persetujuan/penolakan jadwal bimbingan secara otomatis ke mahasiswa.</p>
+                        @if(!$smtpComplete)
+                            <a href="{{ route('admin.smtp.index') }}" class="inline-flex items-center gap-1.5 mt-2 text-xs font-bold text-amber-700 hover:text-amber-900 hover:underline">
+                                Setting SMTP Sekarang <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
+                            </a>
+                        @endif
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal Footer -->
+            <div class="p-6 bg-slate-50 border-t border-slate-100 flex items-center justify-between">
+                <span class="text-[11px] text-slate-500">Anda dapat mengubah pengaturan ini sewaktu-waktu di menu sidebar.</span>
+                <button @click="setupModalOpen = false" class="px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-xl shadow-xs transition-all">
+                    Mengerti, Lanjutkan
+                </button>
+            </div>
+        </div>
+    </div>
+    @endif
+
 </div>
 @endsection

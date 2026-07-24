@@ -169,7 +169,7 @@
 
                         <div class="py-1">
                             <a href="{{ route('admin.profile.index') }}" class="flex items-center gap-2.5 px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-brand-50 hover:text-brand-700 transition-colors">
-                                <i data-lucide="user-cog" class="w-4 h-4 text-brand-600"></i> Pengaturan Profil & Password
+                                <i data-lucide="user-cog" class="w-4 h-4 text-brand-600"></i> Pengaturan Profil Akun
                             </a>
                             <a href="{{ route('student.index') }}" target="_blank" class="sm:hidden flex items-center gap-2.5 px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-brand-50 hover:text-brand-700 transition-colors">
                                 <i data-lucide="external-link" class="w-4 h-4 text-brand-600"></i> Portal Publik

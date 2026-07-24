@@ -183,7 +183,13 @@ class AdminController extends Controller
             ->take(10)
             ->get();
 
-        return view('admin.dashboard', compact('appointments', 'stats', 'calendarEvents', 'todayAppointments', 'upcomingAppointments'));
+        // Check Setup Completion Flags
+        $profileComplete = !empty($user->name) && strlen(trim($user->name)) > 3;
+        $smtpSetting = SmtpSetting::where('is_active', true)->first();
+        $smtpComplete = $smtpSetting && !empty($smtpSetting->host) && !empty($smtpSetting->from_email);
+        $showSetupModal = !$profileComplete || !$smtpComplete;
+
+        return view('admin.dashboard', compact('appointments', 'stats', 'calendarEvents', 'todayAppointments', 'upcomingAppointments', 'profileComplete', 'smtpComplete', 'showSetupModal'));
     }
 
     public function approveAppointment($id)
