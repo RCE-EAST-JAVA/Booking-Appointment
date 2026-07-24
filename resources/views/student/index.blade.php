@@ -242,7 +242,7 @@
                                                 <span class="block text-xs font-bold text-slate-900" x-text="slot.time_slot + ' WIB'"></span>
                                                 <span class="text-[11px] font-semibold"
                                                       :class="slot.is_available ? 'text-emerald-600' : 'text-rose-500'"
-                                                      x-text="slot.is_available ? `Sisa Kuota: ${slot.remaining} mhs` : 'Kuota Penuh'">
+                                                      x-text="slot.is_available ? `Sisa Kuota: ${slot.remaining}` : (slot.disabled_reason || 'Kuota Penuh')">
                                                 </span>
                                             </div>
                                         </div>

@@ -15,7 +15,7 @@ class AppointmentRescheduledMail extends Mailable
 
     public function __construct(public Appointment $appointment)
     {
-        $this->subject = 'Usulan Perubahan Jadwal Bimbingan [' . $appointment->booking_code . ']';
+        $this->subject = 'Perubahan Jadwal Bimbingan [' . $appointment->booking_code . ']';
     }
 
     public function envelope(): Envelope

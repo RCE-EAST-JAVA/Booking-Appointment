@@ -295,12 +295,29 @@ class AdminController extends Controller
 
         try {
             $appointment = Appointment::findOrFail($id);
+
+            // Check if current appointment session starts in < 3 hours
+            $timeSlotParts = explode('-', $appointment->time_slot);
+            $startTimeStr = trim($timeSlotParts[0] ?? '00:00');
+            $sessionStart = Carbon::parse($appointment->appointment_date->toDateString() . ' ' . $startTimeStr);
+
+            if (Carbon::now()->diffInMinutes($sessionStart, false) < 180) {
+                $lockMessage = "Reschedule tidak dapat dilakukan karena sesi bimbingan kurang dari 3 jam lagi dari jam sekarang.";
+                if ($request->expectsJson() || $request->ajax()) {
+                    return response()->json(['success' => false, 'message' => $lockMessage], 422);
+                }
+                return back()->with('error', $lockMessage);
+            }
+
+            // Auto approve new schedule directly
             $appointment->update([
-                'status' => 'rescheduled',
+                'appointment_date' => $request->proposed_date,
+                'time_slot' => $request->proposed_time_slot,
                 'proposed_date' => $request->proposed_date,
                 'proposed_time_slot' => $request->proposed_time_slot,
+                'status' => 'approved',
                 'reschedule_reason' => $request->reason,
-                'token' => Str::random(32), // ensure fresh token
+                'token' => Str::random(32),
             ]);
 
             $mailSent = false;
@@ -314,9 +331,9 @@ class AdminController extends Controller
                 $emailError = $e->getMessage();
             }
 
-            $message = "Usulan perubahan jadwal untuk ({$appointment->booking_code}) berhasil disimpan.";
+            $message = "Perubahan jadwal untuk ({$appointment->booking_code}) berhasil disimpan dan otomatis disetujui.";
             if (!$mailSent) {
-                $message .= " (Catatan: Email usulan reschedule gagal dikirim ke mahasiswa: {$emailError})";
+                $message .= " (Catatan: Email perubahan reschedule gagal dikirim ke mahasiswa: {$emailError})";
             }
 
             if ($request->expectsJson() || $request->ajax()) {

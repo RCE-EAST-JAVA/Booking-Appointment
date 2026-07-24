@@ -8,6 +8,7 @@
     activeTab: 'table',
     rejectModalOpen: false,
     rescheduleModalOpen: false,
+    isRefreshing: false,
     selectedId: null,
     selectedCode: '',
     selectedName: '',
@@ -24,12 +25,55 @@
         this.rejectModalOpen = true;
     },
 
-    openRescheduleModal(id, code, name) {
+    openRescheduleModal(id, code, name, dateStr, slotStr) {
+        if (dateStr && slotStr) {
+            try {
+                let startTime = slotStr.split('-')[0].trim();
+                let sessionDateTime = new Date(`${dateStr}T${startTime}:00`);
+                let now = new Date();
+                let diffInMinutes = (sessionDateTime - now) / (1000 * 60);
+
+                if (diffInMinutes < 180) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Reschedule Terkunci',
+                        text: 'Reschedule tidak dapat dilakukan karena waktu sesi bimbingan kurang dari 3 jam lagi dari jam sekarang.',
+                        confirmButtonColor: '#2563eb'
+                    });
+                    return;
+                }
+            } catch(e) {}
+        }
+
         this.selectedId = id;
         this.selectedCode = code;
         this.selectedName = name;
         this.rescheduleReason = '';
         this.rescheduleModalOpen = true;
+    },
+
+    async refreshTableSection() {
+        this.isRefreshing = true;
+        try {
+            let res = await fetch(window.location.href, {
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            });
+            let html = await res.text();
+            let parser = new DOMParser();
+            let doc = parser.parseFromString(html, 'text/html');
+            let newSection = doc.getElementById('appointment-table-wrapper');
+            if (newSection && document.getElementById('appointment-table-wrapper')) {
+                document.getElementById('appointment-table-wrapper').innerHTML = newSection.innerHTML;
+                lucide.createIcons();
+            } else {
+                window.location.reload();
+            }
+            Toast.fire({ icon: 'success', title: 'Data tabel berhasil diperbarui!' });
+        } catch (e) {
+            Toast.fire({ icon: 'error', title: 'Gagal memperbarui data tabel.' });
+        } finally {
+            this.isRefreshing = false;
+        }
     }
 }">
 
@@ -261,23 +305,32 @@
             @endif
         </form>
 
-        <!-- View Switcher -->
-        <div class="flex items-center gap-1 bg-slate-100 p-1 rounded-xl">
-            <button @click="activeTab = 'table'" 
-                    :class="activeTab === 'table' ? 'bg-white text-slate-900 shadow-xs font-bold' : 'text-slate-500 hover:text-slate-900 font-semibold'" 
-                    class="px-3 py-1.5 rounded-lg text-xs flex items-center gap-1.5 transition-all">
-                <i data-lucide="list" class="w-4 h-4"></i> List View
+        <!-- View Switcher & Refresh Button -->
+        <div class="flex items-center gap-2">
+            <button type="button" @click="refreshTableSection()" :disabled="isRefreshing"
+                    class="px-3 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold transition-all shadow-2xs flex items-center gap-1.5"
+                    title="Refresh Data Tabel">
+                <i data-lucide="refresh-cw" class="w-4 h-4 text-brand-600" :class="isRefreshing ? 'animate-spin' : ''"></i>
+                <span class="hidden sm:inline">Refresh Data</span>
             </button>
-            <button @click="activeTab = 'calendar'" 
-                    :class="activeTab === 'calendar' ? 'bg-white text-slate-900 shadow-xs font-bold' : 'text-slate-500 hover:text-slate-900 font-semibold'" 
-                    class="px-3 py-1.5 rounded-lg text-xs flex items-center gap-1.5 transition-all">
-                <i data-lucide="calendar" class="w-4 h-4"></i> Calendar View
-            </button>
+
+            <div class="flex items-center gap-1 bg-slate-100 p-1 rounded-xl">
+                <button @click="activeTab = 'table'" 
+                        :class="activeTab === 'table' ? 'bg-white text-slate-900 shadow-xs font-bold' : 'text-slate-500 hover:text-slate-900 font-semibold'" 
+                        class="px-3 py-1.5 rounded-lg text-xs flex items-center gap-1.5 transition-all">
+                    <i data-lucide="list" class="w-4 h-4"></i> List View
+                </button>
+                <button @click="activeTab = 'calendar'" 
+                        :class="activeTab === 'calendar' ? 'bg-white text-slate-900 shadow-xs font-bold' : 'text-slate-500 hover:text-slate-900 font-semibold'" 
+                        class="px-3 py-1.5 rounded-lg text-xs flex items-center gap-1.5 transition-all">
+                    <i data-lucide="calendar" class="w-4 h-4"></i> Calendar View
+                </button>
+            </div>
         </div>
     </div>
 
     <!-- TAB 1: LIST VIEW TABLE -->
-    <div x-show="activeTab === 'table'" class="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+    <div x-show="activeTab === 'table'" id="appointment-table-wrapper" class="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
         <div class="overflow-x-auto">
             <table class="w-full text-left border-collapse">
                 <thead>
@@ -356,7 +409,7 @@
                             @endif
 
                             @if($apt->status !== 'completed' && $apt->status !== 'rejected' && $apt->status !== 'cancelled')
-                                <button type="button" @click="openRescheduleModal({{ $apt->id }}, '{{ $apt->booking_code }}', '{{ addslashes($apt->student_name) }}')"
+                                <button type="button" @click="openRescheduleModal({{ $apt->id }}, '{{ $apt->booking_code }}', '{{ addslashes($apt->student_name) }}', '{{ \Carbon\Carbon::parse($apt->appointment_date)->toDateString() }}', '{{ $apt->time_slot }}')"
                                         class="px-2.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-bold text-[11px] shadow-xs inline-flex items-center gap-1">
                                     <i data-lucide="calendar-sync" class="w-3.5 h-3.5"></i> Reschedule
                                 </button>
@@ -435,7 +488,7 @@
     </div>
 
     <!-- MODAL 1: REJECT APPOINTMENT -->
-    <div x-show="rejectModalOpen" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
+    <div x-show="rejectModalOpen" x-cloak class="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
         <div @click.away="rejectModalOpen = false" class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
             <div class="flex items-center justify-between border-b border-slate-100 pb-3">
                 <h3 class="font-bold text-base text-rose-700 flex items-center gap-2">
@@ -466,17 +519,17 @@
     </div>
 
     <!-- MODAL 2: RESCHEDULE APPOINTMENT -->
-    <div x-show="rescheduleModalOpen" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
+    <div x-show="rescheduleModalOpen" x-cloak class="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
         <div @click.away="rescheduleModalOpen = false" class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4">
             <div class="flex items-center justify-between border-b border-slate-100 pb-3">
                 <h3 class="font-bold text-base text-indigo-700 flex items-center gap-2">
-                    <i data-lucide="calendar-sync" class="w-5 h-5"></i> Usulkan Perubahan Jadwal (Reschedule)
+                    <i data-lucide="calendar-sync" class="w-5 h-5"></i> Ubah Jadwal Bimbingan (Reschedule)
                 </h3>
                 <button @click="rescheduleModalOpen = false" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" class="w-5 h-5"></i></button>
             </div>
 
             <p class="text-xs text-slate-600">
-                Ajukan usulan tanggal & jam baru untuk <strong x-text="selectedName"></strong>. Mahasiswa akan menerima email berisi link tombol untuk menyetujui atau membatalkan.
+                Pilih tanggal & jam baru untuk <strong x-text="selectedName"></strong>. Perubahan ini otomatis disetujui dan email pemberitahuan akan dikirim ke mahasiswa.
             </p>
 
             <form :action="`{{ url('admin/appointments') }}/${selectedId}/reschedule`" method="POST" class="space-y-4">
@@ -484,13 +537,13 @@
 
                 <div class="grid grid-cols-2 gap-4">
                     <div>
-                        <label class="block text-xs font-semibold text-slate-700 mb-1">Proposed Tanggal Baru <span class="text-rose-500">*</span></label>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Tanggal Usulan Baru <span class="text-rose-500">*</span></label>
                         <input type="date" name="proposed_date" required min="{{ date('Y-m-d') }}" x-model="proposedDate"
                                class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs font-semibold">
                     </div>
 
                     <div>
-                        <label class="block text-xs font-semibold text-slate-700 mb-1">Proposed Time Slot <span class="text-rose-500">*</span></label>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Slot Waktu Baru <span class="text-rose-500">*</span></label>
                         <select name="proposed_time_slot" required x-model="proposedSlot" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs font-semibold bg-white">
                             <option value="09:00 - 10:00">09:00 - 10:00 WIB</option>
                             <option value="10:00 - 11:00">10:00 - 11:00 WIB</option>
@@ -510,7 +563,7 @@
 
                 <div class="flex items-center justify-end gap-2 pt-2">
                     <button type="button" @click="rescheduleModalOpen = false" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl">Batal</button>
-                    <button type="submit" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl shadow-md">Kirim Usulan Reschedule</button>
+                    <button type="submit" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl shadow-md">Simpan Perubahan Jadwal</button>
                 </div>
             </form>
         </div>
@@ -519,7 +572,7 @@
     <!-- Mandatory Setup Guide Modal -->
     @if(isset($showSetupModal) && $showSetupModal)
     <div x-data="{ setupModalOpen: true }" x-show="setupModalOpen" x-cloak
-         class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-xs">
+         class="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-xs">
         <div class="bg-white rounded-3xl max-w-lg w-full shadow-2xl border border-slate-100 overflow-hidden transform transition-all animate-in fade-in zoom-in duration-200">
             <!-- Modal Header -->
             <div class="bg-gradient-to-r from-brand-600 to-indigo-600 p-6 text-white relative">

@@ -28,7 +28,7 @@
         </div>
         <div class="content">
             <h2>Halo, {{ $appointment->student_name }}</h2>
-            <p>Dosen Pembimbing telah mengajukan <strong>perubahan jadwal (reschedule)</strong> untuk janji bimbingan Anda (Kode Booking: <strong>{{ $appointment->booking_code }}</strong>).</p>
+            <p>Dosen Pembimbing telah melakukan <strong>perubahan jadwal (reschedule)</strong> untuk janji bimbingan Anda (Kode Booking: <strong>{{ $appointment->booking_code }}</strong>). Perubahan ini otomatis disetujui untuk jadwal baru yang telah disesuaikan.</p>
 
             <div class="reason-box">
                 <strong>Alasan Perubahan:</strong><br>
@@ -47,21 +47,16 @@
                     </td>
                     <td width="4%"></td>
                     <td width="48%" style="background: #ecfdf5; border: 1px solid #6ee7b7; border-radius: 6px; padding: 12px; vertical-align: top;">
-                        <span style="font-size: 11px; text-transform: uppercase; color: #047857; font-weight: bold;">JADWAL BARU (PROPOSAL)</span>
+                        <span style="font-size: 11px; text-transform: uppercase; color: #047857; font-weight: bold;">JADWAL BIMBINGAN BARU</span>
                         <div style="font-size: 14px; margin-top: 6px; color: #065f46; font-weight: bold;">
-                            {{ \Carbon\Carbon::parse($appointment->proposed_date)->translatedFormat('d M Y') }}<br>
-                            {{ $appointment->proposed_time_slot }} WIB
+                            {{ \Carbon\Carbon::parse($appointment->proposed_date ?? $appointment->appointment_date)->translatedFormat('d M Y') }}<br>
+                            {{ $appointment->proposed_time_slot ?? $appointment->time_slot }} WIB
                         </div>
                     </td>
                 </tr>
             </table>
 
-            <p style="font-size: 14px; margin-top: 24px;">Silakan konfirmasi pilihan Anda dengan mengklik salah satu tombol di bawah ini:</p>
-
-            <div style="text-align: center; margin: 24px 0;">
-                <a href="{{ route('student.reschedule.action', ['token' => $appointment->token, 'action' => 'accept']) }}" class="action-btn btn-accept">✓ Terima Jadwal Baru</a>
-                <a href="{{ route('student.reschedule.action', ['token' => $appointment->token, 'action' => 'cancel']) }}" class="action-btn btn-cancel">✕ Batalkan Pengajuan</a>
-            </div>
+            <p style="font-size: 14px; margin-top: 24px; color: #374151;">Harap menghadiri sesi bimbingan sesuai dengan jadwal bimbingan baru di atas. Terima kasih.</p>
         </div>
         <div class="footer">
             &copy; {{ date('Y') }} Portal Bimbingan Akademik. All rights reserved.

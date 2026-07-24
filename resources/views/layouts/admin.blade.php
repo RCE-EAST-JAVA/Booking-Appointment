@@ -38,11 +38,13 @@
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
 <body class="font-sans antialiased text-slate-800 min-h-screen bg-slate-100 flex flex-col md:flex-row relative" x-data="{ sidebarOpen: false }">
 
     <!-- Sidebar Desktop & Mobile -->
-    <aside class="fixed inset-y-0 left-0 z-50 w-64 bg-slate-900 text-slate-300 flex flex-col transition-transform duration-300 transform md:translate-x-0"
+    <aside class="fixed inset-y-0 left-0 z-40 w-64 bg-slate-900 text-slate-300 flex flex-col transition-transform duration-300 transform md:translate-x-0"
            :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'">
         
         <!-- Sidebar Brand -->
@@ -116,7 +118,7 @@
     <!-- Main Content Wrapper -->
     <div class="flex-grow flex flex-col min-w-0 md:pl-64">
         <!-- Top Navbar -->
-        <header class="h-16 bg-white/90 backdrop-blur-md border-b border-slate-200/80 px-6 sm:px-10 flex items-center justify-between sticky top-0 z-30 shadow-xs">
+        <header class="h-16 bg-white/90 backdrop-blur-md border-b border-slate-200/80 px-6 sm:px-10 flex items-center justify-between sticky top-0 z-20 shadow-xs">
             <!-- Left: Sidebar Toggle & Page Title Breadcrumb -->
             <div class="flex items-center gap-4 min-w-0">
                 <button @click="sidebarOpen = true" class="md:hidden p-2 rounded-xl text-slate-600 hover:bg-slate-100 transition-colors">
@@ -191,37 +193,45 @@
 
         <!-- Main Body -->
         <main class="p-6 flex-grow">
-
-            @if(session('error'))
-                <div x-data="{ show: true }" x-show="show" class="mb-6 bg-rose-50 border border-rose-200 text-rose-800 px-4 py-3.5 rounded-xl flex items-center justify-between shadow-xs">
-                    <div class="flex items-center gap-2.5">
-                        <i data-lucide="alert-circle" class="w-5 h-5 text-rose-600 flex-shrink-0"></i>
-                        <span class="text-sm font-semibold">{{ session('error') }}</span>
-                    </div>
-                    <button @click="show = false" class="text-rose-500 hover:text-rose-800">
-                        <i data-lucide="x" class="w-4 h-4"></i>
-                    </button>
-                </div>
-            @endif
-
-            @if(session('warning'))
-                <div x-data="{ show: true }" x-show="show" class="mb-6 bg-amber-50 border border-amber-200 text-amber-900 px-4 py-3.5 rounded-xl flex items-center justify-between shadow-xs">
-                    <div class="flex items-center gap-2.5">
-                        <i data-lucide="alert-triangle" class="w-5 h-5 text-amber-600 flex-shrink-0"></i>
-                        <span class="text-sm font-semibold">{{ session('warning') }}</span>
-                    </div>
-                    <button @click="show = false" class="text-amber-500 hover:text-amber-800">
-                        <i data-lucide="x" class="w-4 h-4"></i>
-                    </button>
-                </div>
-            @endif
-
             @yield('content')
         </main>
     </div>
 
     <script>
         lucide.createIcons();
+
+        const Toast = Swal.mixin({
+            toast: true,
+            position: 'top-end',
+            showConfirmButton: false,
+            timer: 4000,
+            timerProgressBar: true,
+            didOpen: (toast) => {
+                toast.addEventListener('mouseenter', Swal.stopTimer)
+                toast.addEventListener('mouseleave', Swal.resumeTimer)
+            }
+        });
+
+        @if(session('success'))
+            Toast.fire({
+                icon: 'success',
+                title: "{{ session('success') }}"
+            });
+        @endif
+
+        @if(session('warning'))
+            Toast.fire({
+                icon: 'warning',
+                title: "{{ session('warning') }}"
+            });
+        @endif
+
+        @if(session('error'))
+            Toast.fire({
+                icon: 'error',
+                title: "{{ session('error') }}"
+            });
+        @endif
     </script>
 </body>
 </html>

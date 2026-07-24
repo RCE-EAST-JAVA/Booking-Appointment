@@ -109,7 +109,7 @@ document.addEventListener('alpine:init', () => {
                 let data = await res.json();
                 this.actionLoadingId = null;
                 if (!res.ok || !data.success) {
-                    alert(data.message || 'Gagal memproses permohonan.');
+                    Swal.fire({ icon: 'error', title: 'Gagal', text: data.message || 'Gagal memproses permohonan.' });
                     return;
                 }
                 let el = document.getElementById('status-badge-' + id);
@@ -122,11 +122,11 @@ document.addEventListener('alpine:init', () => {
                     actionsEl.innerHTML = `<button type="button" @click="completeAppointment(${id})" class="px-2.5 py-1.5 bg-slate-900 hover:bg-slate-800 text-white rounded-lg font-bold text-[11px]">Selesai</button>`;
                 }
                 if (data.message) {
-                    alert(data.message);
+                    Toast.fire({ icon: 'info', title: data.message });
                 }
             } catch(e) {
                 this.actionLoadingId = null;
-                alert('Gagal memproses permohonan: ' + e.message);
+                Swal.fire({ icon: 'error', title: 'Terjadi Kesalahan', text: 'Gagal memproses permohonan: ' + e.message });
             }
         },
 
@@ -145,7 +145,7 @@ document.addEventListener('alpine:init', () => {
                 let data = await res.json();
                 this.actionLoadingId = null;
                 if (!res.ok || !data.success) {
-                    alert(data.message || 'Gagal menyelesaikan permohonan.');
+                    Swal.fire({ icon: 'error', title: 'Gagal', text: data.message || 'Gagal menyelesaikan permohonan.' });
                     return;
                 }
                 let el = document.getElementById('status-badge-' + id);
@@ -157,7 +157,7 @@ document.addEventListener('alpine:init', () => {
                 if (actionsEl) actionsEl.innerHTML = '';
             } catch(e) {
                 this.actionLoadingId = null;
-                alert('Gagal memproses permohonan: ' + e.message);
+                Swal.fire({ icon: 'error', title: 'Terjadi Kesalahan', text: 'Gagal memproses permohonan: ' + e.message });
             }
         },
 
@@ -183,7 +183,7 @@ document.addEventListener('alpine:init', () => {
                 this.rejectModalOpen = false;
                 this.actionLoadingId = null;
                 if (!res.ok || !data.success) {
-                    alert(data.message || 'Gagal menolak janji.');
+                    Swal.fire({ icon: 'error', title: 'Gagal Menolak', text: data.message || 'Gagal menolak janji.' });
                     return;
                 }
                 let el = document.getElementById('status-badge-' + id);
@@ -194,11 +194,11 @@ document.addEventListener('alpine:init', () => {
                 let actionsEl = document.getElementById('action-buttons-' + id);
                 if (actionsEl) actionsEl.innerHTML = '';
                 if (data.message) {
-                    alert(data.message);
+                    Toast.fire({ icon: 'info', title: data.message });
                 }
             } catch(e) {
                 this.actionLoadingId = null;
-                alert('Gagal menolak janji: ' + e.message);
+                Swal.fire({ icon: 'error', title: 'Terjadi Kesalahan', text: 'Gagal menolak janji: ' + e.message });
             }
         },
 
@@ -226,24 +226,24 @@ document.addEventListener('alpine:init', () => {
                 this.rescheduleModalOpen = false;
                 this.actionLoadingId = null;
                 if (!res.ok || !data.success) {
-                    alert(data.message || 'Gagal mengirim usulan reschedule.');
+                    Swal.fire({ icon: 'error', title: 'Gagal Reschedule', text: data.message || 'Gagal melakukan reschedule.' });
                     return;
                 }
                 let el = document.getElementById('status-badge-' + id);
                 if (el) {
-                    el.className = 'inline-flex items-center px-2.5 py-1 rounded-full font-bold text-[10px] border bg-indigo-50 text-indigo-700 border-indigo-200';
-                    el.innerText = 'Rescheduled';
+                    el.className = 'inline-flex items-center px-2.5 py-1 rounded-full font-bold text-[10px] border bg-emerald-50 text-emerald-700 border-emerald-200';
+                    el.innerText = 'Disetujui';
                 }
                 let dateEl = document.getElementById('date-slot-' + id);
                 if (dateEl) {
-                    dateEl.innerHTML = `<div class="font-bold text-slate-900">${this.proposedDate}</div><div class="text-indigo-600 font-semibold text-[11px]">${this.proposedSlot} WIB</div>`;
+                    dateEl.innerHTML = `<div class="font-bold text-slate-900">${this.proposedDate}</div><div class="text-brand-600 font-semibold text-[11px]">${this.proposedSlot} WIB</div>`;
                 }
                 if (data.message) {
-                    alert(data.message);
+                    Toast.fire({ icon: 'success', title: data.message });
                 }
             } catch(e) {
                 this.actionLoadingId = null;
-                alert('Gagal mengirim usulan reschedule: ' + e.message);
+                Swal.fire({ icon: 'error', title: 'Terjadi Kesalahan', text: 'Gagal reschedule: ' + e.message });
             }
         },
 
@@ -841,7 +841,7 @@ document.addEventListener('alpine:init', () => {
 
     <!-- MODAL OVERRIDE TANGGAL & JAM UN-AVAILABLE -->
     <div x-show="modalOpen" x-cloak 
-         class="fixed inset-0 z-[100] overflow-y-auto bg-slate-900/60 backdrop-blur-xs p-4 sm:p-6 flex items-center justify-center min-h-screen">
+         class="fixed inset-0 z-[9999] overflow-y-auto bg-slate-900/60 backdrop-blur-xs p-4 sm:p-6 flex items-center justify-center min-h-screen">
         
         <div @click.outside="modalOpen = false" 
              class="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-lg w-full overflow-hidden flex flex-col max-h-[85vh] my-auto relative z-10">
@@ -890,7 +890,7 @@ document.addEventListener('alpine:init', () => {
                             <i data-lucide="plus" class="w-3.5 h-3.5"></i> Tambah Jam Off
                         </button>
                     </div>
-                    <p class="text-[11px] text-slate-500">Tentukan satu atau beberapa rentang jam ketika Anda berhalangan (misal: Rapat jam 08:30-09:15 dan Dinas jam 13:00-14:00). Semua slot bimbingan default mahasiswa yang beririsan otomatis diblokir.</p>
+
 
                     <div class="space-y-3 max-h-52 overflow-y-auto p-2 bg-slate-50 border border-slate-200 rounded-xl">
                         <template x-for="(range, index) in unavailableRanges" :key="index">
@@ -1015,7 +1015,7 @@ document.addEventListener('alpine:init', () => {
 
 
     <!-- MODAL REJECT -->
-    <div x-show="rejectModalOpen" x-cloak class="fixed inset-0 z-[100] overflow-y-auto bg-slate-900/60 backdrop-blur-xs p-4 flex items-center justify-center min-h-screen">
+    <div x-show="rejectModalOpen" x-cloak class="fixed inset-0 z-[9999] overflow-y-auto bg-slate-900/60 backdrop-blur-xs p-4 flex items-center justify-center min-h-screen">
         <div @click.outside="rejectModalOpen = false" class="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-md w-full p-6 space-y-4 my-auto">
             <h3 class="text-base font-bold text-slate-900">Tolak Janji Bimbingan</h3>
             <p class="text-xs text-slate-500">Berikan alasan penolakan untuk mahasiswa <strong x-text="selectedName"></strong> (<span x-text="selectedCode"></span>).</p>
@@ -1027,63 +1027,55 @@ document.addEventListener('alpine:init', () => {
                     <button type="submit" class="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold shadow-xs">Tolak Janji</button>
                 </div>
             </form>
-        </div>
-    </div>
-
-
-    <!-- MODAL RESCHEDULE (LENGKAP DENGAN PREVIEW KUOTA & AVAILABILITY LIVE) -->
-    <div x-show="rescheduleModalOpen" x-cloak class="fixed inset-0 z-[100] overflow-y-auto bg-slate-900/60 backdrop-blur-xs p-4 flex items-center justify-center min-h-screen">
+            <!-- MODAL RESCHEDULE (LENGKAP DENGAN PREVIEW KUOTA & AVAILABILITY LIVE) -->
+    <div x-show="rescheduleModalOpen" x-cloak class="fixed inset-0 z-[9999] overflow-y-auto bg-slate-900/60 backdrop-blur-xs p-4 flex items-center justify-center min-h-screen">
         <div @click.outside="rescheduleModalOpen = false" class="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-md w-full p-6 space-y-4 my-auto">
-            <h3 class="text-base font-bold text-slate-900">Usulkan Jadwal Ulang (Reschedule)</h3>
-            <p class="text-xs text-slate-500">Ajukan tanggal & jam pengganti untuk <strong x-text="selectedName"></strong> (<span x-text="selectedCode"></span>).</p>
-            
-            <form @submit.prevent="submitReschedule()" class="space-y-4">
+            <h3 class="text-base font-bold text-slate-900">Perubahan Jadwal Bimbingan (Reschedule)</h3>
+            <p class="text-xs text-slate-500">Pilih tanggal & jam pengganti untuk <strong x-text="selectedName"></strong> (<span x-text="selectedCode"></span>). Perubahan ini otomatis disetujui.</p>
+
+            <div class="space-y-4">
                 <div>
                     <label class="block text-xs font-bold text-slate-700 mb-1">Tanggal Usulan Baru</label>
-                    <input type="date" x-model="proposedDate" @change="fetchRescheduleSlots()" min="{{ date('Y-m-d') }}" required class="w-full px-3.5 py-2 border border-slate-300 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-indigo-500">
+                    <input type="date" x-model="proposedDate" @change="fetchSlotsForDate(proposedDate)" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs font-semibold focus:ring-1 focus:ring-brand-500">
                 </div>
 
-                <!-- Live Availability Preview & Slot Selector -->
-                <div class="space-y-2 p-3 bg-slate-50 border border-slate-200 rounded-xl">
-                    <label class="block text-xs font-bold text-slate-700 flex items-center justify-between">
-                        <span>Pilihan Slot Jam Available</span>
-                        <span x-show="loadingRescheduleSlots" class="text-[10px] text-brand-600 animate-pulse font-normal">Memuat ketersediaan...</span>
-                    </label>
-
-                    <template x-if="rescheduleDateBlocked">
-                        <div class="p-2.5 rounded-lg bg-rose-100 text-rose-800 text-[11px] font-bold">
-                            ⚠️ Tanggal ini Tutup / Libur (<span x-text="rescheduleBlockedReason"></span>)
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">Pilihan Slot Jam Available</label>
+                    <template x-if="loadingSlots">
+                        <div class="text-xs text-slate-400 py-2 italic flex items-center gap-1.5">
+                            <i data-lucide="loader-2" class="w-3.5 h-3.5 animate-spin text-brand-600"></i> Memeriksa kuota & status jam...
                         </div>
                     </template>
 
-                    <template x-if="!rescheduleDateBlocked && rescheduleSlots.length > 0">
-                        <select x-model="proposedSlot" required class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs font-semibold bg-white focus:ring-2 focus:ring-indigo-500">
-                            <template x-for="slot in rescheduleSlots" :key="slot.time_slot">
-                                <option :value="slot.time_slot" :disabled="!slot.is_available"
-                                        x-text="`${slot.time_slot} WIB — ${slot.is_available ? `Sisa ${slot.remaining} Kuota` : (slot.disabled_reason || 'Kuota Penuh')}`">
+                    <template x-if="!loadingSlots && isBlocked">
+                        <div class="p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-700 font-semibold">
+                            ⚠️ Tanggal ini Libur / Berhalangan: <span x-text="blockedReason"></span>
+                        </div>
+                    </template>
+
+                    <template x-if="!loadingSlots && !isBlocked">
+                        <select x-model="proposedSlot" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs font-semibold focus:ring-1 focus:ring-brand-500">
+                            <template x-for="s in availableSlots" :key="s.time_slot">
+                                <option :value="s.time_slot" :disabled="!s.is_available" 
+                                        x-text="s.time_slot + ' WIB — ' + (s.is_available ? 'Sisa ' + s.remaining + ' Kuota' : (s.disabled_reason || 'Penuh'))">
                                 </option>
                             </template>
                         </select>
-                    </template>
-
-                    <template x-if="!rescheduleDateBlocked && rescheduleSlots.length === 0 && !loadingRescheduleSlots">
-                        <div class="space-y-1">
-                            <input type="text" x-model="proposedSlot" required placeholder="Contoh: 10:00 - 11:00" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs font-semibold">
-                            <p class="text-[10px] text-slate-400">Ketik slot jam manual jika tidak ada opsi dropdown.</p>
-                        </div>
                     </template>
                 </div>
 
                 <div>
                     <label class="block text-xs font-bold text-slate-700 mb-1">Alasan Perubahan Jadwal</label>
-                    <textarea x-model="rescheduleReason" required rows="2" placeholder="Catatan untuk mahasiswa..." class="w-full p-3 border border-slate-300 rounded-xl text-xs font-medium focus:ring-2 focus:ring-indigo-500"></textarea>
+                    <textarea x-model="rescheduleReason" rows="2" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs focus:ring-1 focus:ring-brand-500" placeholder="Rapat"></textarea>
                 </div>
 
-                <div class="pt-2 flex justify-end gap-2">
-                    <button type="button" @click="rescheduleModalOpen = false" class="px-4 py-2 border border-slate-300 rounded-xl text-xs font-bold hover:bg-slate-100">Batal</button>
-                    <button type="submit" :disabled="rescheduleDateBlocked" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-xl text-xs font-bold shadow-xs">Kirim Usulan</button>
+                <div class="flex justify-end gap-2 pt-2">
+                    <button type="button" @click="rescheduleModalOpen = false" class="px-4 py-2 border border-slate-300 hover:bg-slate-50 rounded-xl text-xs font-bold text-slate-600">Batal</button>
+                    <button type="button" @click="submitReschedule()" :disabled="actionLoadingId === selectedId || (isBlocked || !proposedSlot)" class="px-4 py-2 bg-brand-600 hover:bg-brand-700 disabled:opacity-50 text-white rounded-xl text-xs font-bold">Simpan Perubahan Jadwal</button>
                 </div>
-            </form>
+            </div>
+        </div>
+    </div>
         </div>
     </div>
 

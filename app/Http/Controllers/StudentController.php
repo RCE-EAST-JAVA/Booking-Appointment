@@ -136,6 +136,19 @@ class StudentController extends Controller
                 }
             }
 
+            // Check if slot starts in < 4 hours (240 minutes) from now
+            $isSlotTooSoon = false;
+            $parts = explode('-', $schedule->time_slot);
+            if (count($parts) === 2) {
+                $slotStart = trim($parts[0]);
+                try {
+                    $slotStartDateTime = Carbon::parse($dateStr . ' ' . $slotStart);
+                    if (Carbon::now()->diffInMinutes($slotStartDateTime, false) < 240) {
+                        $isSlotTooSoon = true;
+                    }
+                } catch (\Exception $e) {}
+            }
+
             $bookedCount = Appointment::whereDate('appointment_date', $dateStr)
                 ->where('time_slot', $schedule->time_slot)
                 ->whereIn('status', ['pending', 'approved', 'rescheduled'])
@@ -144,15 +157,21 @@ class StudentController extends Controller
                 })
                 ->count();
 
-            $remainingQuota = $isSlotDisabledByOverride ? 0 : max(0, $schedule->quota - $bookedCount);
+            $remainingQuota = ($isSlotDisabledByOverride || $isSlotTooSoon) ? 0 : max(0, $schedule->quota - $bookedCount);
+            $disabledReason = null;
+            if ($isSlotDisabledByOverride) {
+                $disabledReason = 'Jam Diblokir (Rapat/Dinas)';
+            } elseif ($isSlotTooSoon) {
+                $disabledReason = 'Sesi dimulai < 4 Jam lagi';
+            }
 
             $slots[] = [
                 'time_slot' => $schedule->time_slot,
                 'quota' => $schedule->quota,
                 'booked' => $bookedCount,
                 'remaining' => $remainingQuota,
-                'is_available' => !$isSlotDisabledByOverride && $remainingQuota > 0,
-                'disabled_reason' => $isSlotDisabledByOverride ? 'Jam Diblokir (Rapat/Dinas)' : null,
+                'is_available' => !$isSlotDisabledByOverride && !$isSlotTooSoon && $remainingQuota > 0,
+                'disabled_reason' => $disabledReason,
             ];
         }
 
@@ -234,6 +253,18 @@ class StudentController extends Controller
 
         if (($override && in_array($validated['time_slot'], $override->unavailable_slots ?? [])) || $isSlotDisabledByRange) {
             return back()->withInput()->with('error', 'Slot waktu ' . $validated['time_slot'] . ' WIB pada tanggal tersebut sedang tidak tersedia (berhalangan/rapat).');
+        }
+
+        // Verify if session starts in < 4 hours from now
+        $parts = explode('-', $validated['time_slot']);
+        if (count($parts) === 2) {
+            $slotStart = trim($parts[0]);
+            try {
+                $slotStartDateTime = Carbon::parse($date . ' ' . $slotStart);
+                if (Carbon::now()->diffInMinutes($slotStartDateTime, false) < 240) {
+                    return back()->withInput()->with('error', 'Slot waktu ' . $validated['time_slot'] . ' WIB tidak dapat dipesan karena sesi dimulai kurang dari 4 jam dari jam sekarang.');
+                }
+            } catch (\Exception $e) {}
         }
 
         // Verify quota
