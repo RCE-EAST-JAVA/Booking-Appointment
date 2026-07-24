@@ -24,7 +24,11 @@
                  url += `&user_id=${this.selectedLecturer}`;
              }
 
-             fetch(url)
+             fetch(url, {
+                 headers: {
+                     'Accept': 'application/json'
+                 }
+             })
                  .then(res => res.json())
                  .then(data => {
                      this.loadingSlots = false;
