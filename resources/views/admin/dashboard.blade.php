@@ -617,12 +617,7 @@
                                     <span class="px-2 py-0.5 rounded-md bg-amber-100 text-amber-800 text-[10px] font-extrabold">Perlu Diisi</span>
                                 @endif
                             </div>
-                            <p class="text-xs text-slate-600 mt-1 leading-relaxed">Isi nama lengkap & gelar Anda agar mahasiswa dapat memilih nama Anda di pilihan dosen tujuan bimbingan.</p>
-                            @if(!$profileComplete)
-                                <a href="{{ route('admin.profile.index') }}" class="inline-flex items-center gap-1.5 mt-2 text-xs font-bold text-amber-700 hover:text-amber-900 hover:underline">
-                                    Lengkapi Profil Sekarang <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
-                                </a>
-                            @endif
+                            <p class="text-xs text-slate-600 mt-1 leading-relaxed">Profil dan nama lengkap Anda tersinkronisasi otomatis dari Portal RCE SSO.</p>
                         </div>
                     </div>
 
