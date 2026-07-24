@@ -14,11 +14,18 @@ class SmtpConfigService
             return false;
         }
 
+        try {
+            $password = $setting->password;
+        } catch (\Throwable $e) {
+            // Password in DB encrypted with an old APP_KEY, fallback to null or empty
+            $password = null;
+        }
+
         Config::set('mail.default', 'smtp');
         Config::set('mail.mailers.smtp.host', $setting->host);
         Config::set('mail.mailers.smtp.port', $setting->port);
         Config::set('mail.mailers.smtp.username', $setting->username);
-        Config::set('mail.mailers.smtp.password', $setting->password);
+        Config::set('mail.mailers.smtp.password', $password);
         
         $scheme = match(strtolower($setting->encryption ?? 'tls')) {
             'ssl' => 'smtps',
