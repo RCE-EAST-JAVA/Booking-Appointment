@@ -46,8 +46,61 @@ document.addEventListener('alpine:init', () => {
         rescheduleDateBlocked: false,
         rescheduleBlockedReason: '',
 
-        // AJAX loading state
+        // AJAX & Refresh state
         actionLoadingId: null,
+        isRefreshing: false,
+
+        async refreshTableSection() {
+            this.isRefreshing = true;
+            try {
+                let res = await fetch(window.location.href, {
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                });
+                let html = await res.text();
+                let parser = new DOMParser();
+                let doc = parser.parseFromString(html, 'text/html');
+                let newSection = doc.getElementById('schedules-tamu-table-wrapper');
+                if (newSection && document.getElementById('schedules-tamu-table-wrapper')) {
+                    document.getElementById('schedules-tamu-table-wrapper').innerHTML = newSection.innerHTML;
+                    lucide.createIcons();
+                } else {
+                    window.location.reload();
+                }
+                Toast.fire({ icon: 'success', title: 'Data tabel berhasil diperbarui!' });
+            } catch (e) {
+                Toast.fire({ icon: 'error', title: 'Gagal memperbarui data tabel.' });
+            } finally {
+                this.isRefreshing = false;
+            }
+        },
+
+        openRescheduleModal(id, code, name, dateStr, slotStr) {
+            if (dateStr && slotStr) {
+                try {
+                    let startTime = slotStr.split('-')[0].trim();
+                    let sessionDateTime = new Date(`${dateStr}T${startTime}:00`);
+                    let now = new Date();
+                    let diffInMinutes = (sessionDateTime - now) / (1000 * 60);
+
+                    if (diffInMinutes < 180) {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Reschedule Terkunci',
+                            text: 'Reschedule tidak dapat dilakukan karena waktu sesi bimbingan kurang dari 3 jam lagi dari jam sekarang.',
+                            confirmButtonColor: '#2563eb'
+                        });
+                        return;
+                    }
+                } catch(e) {}
+            }
+            this.selectedId = id;
+            this.selectedCode = code;
+            this.selectedName = name;
+            this.rescheduleReason = '';
+            this.proposedDate = '{{ date('Y-m-d') }}';
+            this.fetchRescheduleSlots();
+            this.rescheduleModalOpen = true;
+        },
 
         fetchRescheduleSlots() {
             if (!this.proposedDate) return;
@@ -671,7 +724,7 @@ document.addEventListener('alpine:init', () => {
 
 
     <!-- TAB 2: DAFTAR TAMU TERDAFTAR -->
-    <div x-show="activeTab === 'daftar_tamu'" class="space-y-6 animate-in fade-in duration-150">
+    <div x-show="activeTab === 'daftar_tamu'" id="schedules-tamu-table-wrapper" class="space-y-6 animate-in fade-in duration-150">
         <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs mb-4 space-y-4 md:space-y-0 md:flex md:items-center md:justify-between">
             <form action="{{ route('admin.schedules.index') }}" method="GET" class="flex flex-wrap items-center gap-3 flex-grow">
                 <select name="status" onchange="this.form.submit()" class="px-3 py-2 border border-slate-300 rounded-xl text-xs font-semibold bg-white">
@@ -699,6 +752,13 @@ document.addEventListener('alpine:init', () => {
                     </div>
                 </div>
             </form>
+
+            <button type="button" @click="refreshTableSection()" :disabled="isRefreshing"
+                    class="px-3.5 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold transition-all shadow-2xs flex items-center gap-1.5"
+                    title="Refresh Data Tabel">
+                <i data-lucide="refresh-cw" class="w-4 h-4 text-brand-600" :class="isRefreshing ? 'animate-spin' : ''"></i>
+                <span class="hidden sm:inline">Refresh Data</span>
+            </button>
         </div>
 
         <div class="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
@@ -733,13 +793,11 @@ document.addEventListener('alpine:init', () => {
                                 @endif
                             </td>
 
-                            <td class="py-4 px-4">
-                                <div id="date-slot-{{ $apt->id }}">
-                                    <div class="font-bold text-slate-900">
-                                        {{ \Carbon\Carbon::parse($apt->appointment_date)->translatedFormat('d M Y') }}
-                                    </div>
-                                    <div class="text-brand-600 font-semibold text-[11px]">{{ $apt->time_slot }} WIB</div>
+                            <td class="py-4 px-4" id="date-slot-{{ $apt->id }}">
+                                <div class="font-bold text-slate-900">
+                                    {{ \Carbon\Carbon::parse($apt->appointment_date)->translatedFormat('d M Y') }}
                                 </div>
+                                <div class="text-brand-600 font-semibold text-[11px]">{{ $apt->time_slot }} WIB</div>
                             </td>
 
                             <td class="py-4 px-4">
@@ -750,7 +808,7 @@ document.addEventListener('alpine:init', () => {
                                         'rescheduled' => ['bg' => 'bg-indigo-50 text-indigo-700 border-indigo-200', 'txt' => 'Rescheduled'],
                                         'rejected' => ['bg' => 'bg-rose-50 text-rose-700 border-rose-200', 'txt' => 'Ditolak'],
                                         'completed' => ['bg' => 'bg-blue-50 text-blue-700 border-blue-200', 'txt' => 'Selesai'],
-                                        default => ['bg' => 'bg-slate-100 text-slate-600 border-slate-300', 'txt' => ucfirst($apt->status)],
+                                        default => ['bg' => 'bg-slate-100 text-slate-600 border-slate-300', 'txt' => $apt->status],
                                     };
                                 @endphp
                                 <span id="status-badge-{{ $apt->id }}" class="inline-flex items-center px-2.5 py-1 rounded-full font-bold text-[10px] border {{ $st['bg'] }}">
@@ -771,9 +829,10 @@ document.addEventListener('alpine:init', () => {
                                         <div class="inline-flex items-center gap-1">
                                             @if($apt->status === 'pending' || $apt->status === 'rescheduled')
                                                 <button type="button" @click="approveAppointment({{ $apt->id }})" class="px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold text-[11px] transition-all">Setujui</button>
-                                                <button type="button" @click="openRescheduleModal({{ $apt->id }}, '{{ $apt->booking_code }}', '{{ addslashes($apt->student_name) }}', '{{ $apt->appointment_date }}')" class="px-2.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-bold text-[11px] transition-all">Reschedule</button>
+                                                <button type="button" @click="openRescheduleModal({{ $apt->id }}, '{{ $apt->booking_code }}', '{{ addslashes($apt->student_name) }}', '{{ \Carbon\Carbon::parse($apt->appointment_date)->toDateString() }}', '{{ $apt->time_slot }}')" class="px-2.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-bold text-[11px] transition-all">Reschedule</button>
                                                 <button type="button" @click="openRejectModal({{ $apt->id }}, '{{ $apt->booking_code }}', '{{ addslashes($apt->student_name) }}')" class="px-2.5 py-1.5 bg-rose-50 text-rose-600 hover:bg-rose-100 rounded-lg font-bold text-[11px] transition-all">Tolak</button>
                                             @elseif($apt->status === 'approved')
+                                                <button type="button" @click="openRescheduleModal({{ $apt->id }}, '{{ $apt->booking_code }}', '{{ addslashes($apt->student_name) }}', '{{ \Carbon\Carbon::parse($apt->appointment_date)->toDateString() }}', '{{ $apt->time_slot }}')" class="px-2.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-bold text-[11px] transition-all">Reschedule</button>
                                                 <button type="button" @click="completeAppointment({{ $apt->id }})" class="px-2.5 py-1.5 bg-slate-900 hover:bg-slate-800 text-white rounded-lg font-bold text-[11px] transition-all">Selesai</button>
                                             @endif
                                         </div>
@@ -835,247 +894,252 @@ document.addEventListener('alpine:init', () => {
                     </button>
                 </div>
             </form>
-        </div>
-    </div>
-
-
-    <!-- MODAL OVERRIDE TANGGAL & JAM UN-AVAILABLE -->
-    <div x-show="modalOpen" x-cloak 
-         class="fixed inset-0 z-[9999] overflow-y-auto bg-slate-900/60 backdrop-blur-xs p-4 sm:p-6 flex items-center justify-center min-h-screen">
-        
-        <div @click.outside="modalOpen = false" 
-             class="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-lg w-full overflow-hidden flex flex-col max-h-[85vh] my-auto relative z-10">
+            <!-- MODAL OVERRIDE TANGGAL & JAM UN-AVAILABLE -->
+    <template x-teleport="body">
+        <div x-show="modalOpen" x-cloak 
+             class="fixed inset-0 z-[9999] overflow-y-auto bg-slate-900/60 backdrop-blur-xs p-4 sm:p-6 flex items-center justify-center min-h-screen">
             
-            <!-- Modal Header -->
-            <div class="p-5 border-b border-slate-100 bg-slate-50 flex items-center justify-between flex-shrink-0">
-                <div>
-                    <span class="text-[11px] font-extrabold text-brand-600 uppercase tracking-wider block">Setting Tanggal Khusus</span>
-                    <h3 class="text-sm font-extrabold text-slate-900" x-text="formattedSelectedDate"></h3>
-                </div>
-                <button @click="modalOpen = false" class="text-slate-400 hover:text-slate-700 p-1 rounded-lg hover:bg-slate-200/60 transition-colors">
-                    <i data-lucide="x" class="w-5 h-5"></i>
-                </button>
-            </div>
-
-            <!-- Modal Body Container -->
-            <div class="p-6 space-y-6 overflow-y-auto flex-grow">
-                <div>
-                    <label class="block text-xs font-bold text-slate-700 uppercase mb-2">Status Layanan Bimbingan / Bertamu</label>
-                    <div class="grid grid-cols-2 gap-3">
-                        <button type="button" @click="isAvailable = true"
-                                class="p-3 rounded-xl border-2 font-bold text-xs flex items-center justify-center gap-2 transition-all"
-                                :class="isAvailable ? 'border-emerald-500 bg-emerald-50 text-emerald-800 shadow-sm' : 'border-slate-200 bg-white text-slate-500'">
-                            <span class="w-3 h-3 rounded-full bg-emerald-500"></span> Available / Buka
-                        </button>
-                        <button type="button" @click="isAvailable = false"
-                                class="p-3 rounded-xl border-2 font-bold text-xs flex items-center justify-center gap-2 transition-all"
-                                :class="!isAvailable ? 'border-rose-500 bg-rose-50 text-rose-800 shadow-sm' : 'border-slate-200 bg-white text-slate-500'">
-                            <span class="w-3 h-3 rounded-full bg-rose-500"></span> Libur / Closed
-                        </button>
+            <div @click.outside="modalOpen = false" 
+                 class="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-lg w-full overflow-hidden flex flex-col max-h-[85vh] my-auto relative z-10">
+                
+                <!-- Modal Header -->
+                <div class="p-5 border-b border-slate-100 bg-slate-50 flex items-center justify-between flex-shrink-0">
+                    <div>
+                        <span class="text-[11px] font-extrabold text-brand-600 uppercase tracking-wider block">Setting Tanggal Khusus</span>
+                        <h3 class="text-sm font-extrabold text-slate-900" x-text="formattedSelectedDate"></h3>
                     </div>
+                    <button @click="modalOpen = false" class="text-slate-400 hover:text-slate-700 p-1 rounded-lg hover:bg-slate-200/60 transition-colors">
+                        <i data-lucide="x" class="w-5 h-5"></i>
+                    </button>
                 </div>
 
-                <div>
-                    <label for="modal_reason" class="block text-xs font-bold text-slate-700 uppercase mb-1">Keterangan / Alasan Override</label>
-                    <input type="text" id="modal_reason" x-model="reason" 
-                           placeholder="Contoh: Rapat Senat / Tugas Dinas / Sesi Bertamu Khusus"
-                           class="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-brand-500">
-                </div>
-
-                <div x-show="isAvailable" class="space-y-4">
-                    <div class="flex items-center justify-between">
-                        <label class="block text-xs font-bold text-slate-700 uppercase">Daftar Jam Unavailable / Jam Off</label>
-                        <button type="button" @click="unavailableRanges.push({ start: '', end: '' })" 
-                                class="px-2.5 py-1.5 bg-brand-50 hover:bg-brand-100 text-brand-700 rounded-lg text-xs font-bold transition-all flex items-center gap-1">
-                            <i data-lucide="plus" class="w-3.5 h-3.5"></i> Tambah Jam Off
-                        </button>
+                <!-- Modal Body Container -->
+                <div class="p-6 space-y-6 overflow-y-auto flex-grow">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase mb-2">Status Layanan Bimbingan / Bertamu</label>
+                        <div class="grid grid-cols-2 gap-3">
+                            <button type="button" @click="isAvailable = true"
+                                    class="p-3 rounded-xl border-2 font-bold text-xs flex items-center justify-center gap-2 transition-all"
+                                    :class="isAvailable ? 'border-emerald-500 bg-emerald-50 text-emerald-800 shadow-sm' : 'border-slate-200 bg-white text-slate-500'">
+                                <span class="w-3 h-3 rounded-full bg-emerald-500"></span> Available / Buka
+                            </button>
+                            <button type="button" @click="isAvailable = false"
+                                    class="p-3 rounded-xl border-2 font-bold text-xs flex items-center justify-center gap-2 transition-all"
+                                    :class="!isAvailable ? 'border-rose-500 bg-rose-50 text-rose-800 shadow-sm' : 'border-slate-200 bg-white text-slate-500'">
+                                <span class="w-3 h-3 rounded-full bg-rose-500"></span> Libur / Closed
+                            </button>
+                        </div>
                     </div>
 
+                    <div>
+                        <label for="modal_reason" class="block text-xs font-bold text-slate-700 uppercase mb-1">Keterangan / Alasan Override</label>
+                        <input type="text" id="modal_reason" x-model="reason" 
+                               placeholder="Contoh: Rapat Senat / Tugas Dinas / Sesi Bertamu Khusus"
+                               class="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-brand-500">
+                    </div>
 
-                    <div class="space-y-3 max-h-52 overflow-y-auto p-2 bg-slate-50 border border-slate-200 rounded-xl">
-                        <template x-for="(range, index) in unavailableRanges" :key="index">
-                            <div class="flex items-end gap-2 p-2 bg-white rounded-lg border border-slate-200 shadow-2xs">
-                                <div class="grid grid-cols-2 gap-2 flex-grow">
-                                    <div>
-                                        <label class="block text-[10px] font-bold text-slate-500 mb-0.5">Jam Mulai</label>
-                                        <input type="time" x-model="range.start" required
-                                               class="w-full px-2 py-1.5 border border-slate-300 rounded-lg text-xs font-semibold focus:ring-1 focus:ring-brand-500">
+                    <div x-show="isAvailable" class="space-y-4">
+                        <div class="flex items-center justify-between">
+                            <label class="block text-xs font-bold text-slate-700 uppercase">Daftar Jam Unavailable / Jam Off</label>
+                            <button type="button" @click="unavailableRanges.push({ start: '', end: '' })" 
+                                    class="px-2.5 py-1.5 bg-brand-50 hover:bg-brand-100 text-brand-700 rounded-lg text-xs font-bold transition-all flex items-center gap-1">
+                                <i data-lucide="plus" class="w-3.5 h-3.5"></i> Tambah Jam Off
+                            </button>
+                        </div>
+
+
+                        <div class="space-y-3 max-h-52 overflow-y-auto p-2 bg-slate-50 border border-slate-200 rounded-xl">
+                            <template x-for="(range, index) in unavailableRanges" :key="index">
+                                <div class="flex items-end gap-2 p-2 bg-white rounded-lg border border-slate-200 shadow-2xs">
+                                    <div class="grid grid-cols-2 gap-2 flex-grow">
+                                        <div>
+                                            <label class="block text-[10px] font-bold text-slate-500 mb-0.5">Jam Mulai</label>
+                                            <input type="time" x-model="range.start" required
+                                                   class="w-full px-2 py-1.5 border border-slate-300 rounded-lg text-xs font-semibold focus:ring-1 focus:ring-brand-500">
+                                        </div>
+                                        <div>
+                                            <label class="block text-[10px] font-bold text-slate-500 mb-0.5">Jam Selesai</label>
+                                            <input type="time" x-model="range.end" required
+                                                   class="w-full px-2 py-1.5 border border-slate-300 rounded-lg text-xs font-semibold focus:ring-1 focus:ring-brand-500">
+                                        </div>
                                     </div>
-                                    <div>
-                                        <label class="block text-[10px] font-bold text-slate-500 mb-0.5">Jam Selesai</label>
-                                        <input type="time" x-model="range.end" required
-                                               class="w-full px-2 py-1.5 border border-slate-300 rounded-lg text-xs font-semibold focus:ring-1 focus:ring-brand-500">
-                                    </div>
+                                    <button type="button" @click="unavailableRanges.splice(index, 1)" 
+                                            class="p-2 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-lg transition-colors" title="Hapus rentang ini">
+                                        Hapus
+                                    </button>
                                 </div>
-                                <button type="button" @click="unavailableRanges.splice(index, 1)" 
-                                        class="p-2 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-lg transition-colors" title="Hapus rentang ini">
-                                    Hapus
-                                </button>
+                            </template>
+
+                            <template x-if="unavailableRanges.length === 0">
+                                <p class="text-center text-[11px] text-slate-400 py-4">Belum ada jam off khusus yang ditambahkan. Seluruh jam default harian aktif.</p>
+                            </template>
+                        </div>
+                    </div>
+
+                    <!-- SECTION: LIST MAHASISWA MENDAFTAR TANGGAL INI -->
+                    <div class="border-t border-slate-200 pt-4 space-y-3">
+                        <div class="flex items-center justify-between">
+                            <label class="block text-xs font-bold text-slate-700 uppercase flex items-center gap-1.5">
+                                <i data-lucide="users" class="w-4 h-4 text-brand-600"></i>
+                                <span>Daftar Mahasiswa Mendaftar</span>
+                                <span class="px-2 py-0.5 rounded-full bg-brand-100 text-brand-700 text-[11px] font-extrabold" x-text="dayAppointments.length + ' Mahasiswa'"></span>
+                            </label>
+                        </div>
+
+                        <template x-if="dayAppointments.length > 0">
+                            <div class="space-y-2.5 max-h-64 overflow-y-auto pr-1" x-data="{ expandedAptId: null }">
+                                <template x-for="apt in dayAppointments" :key="apt.id">
+                                    <div class="p-3.5 rounded-2xl border border-slate-200 bg-slate-50/80 hover:bg-white hover:border-brand-300 transition-all space-y-2">
+                                        <div class="flex items-center justify-between gap-3">
+                                            <div class="overflow-hidden flex-grow">
+                                                <div class="flex items-center gap-2">
+                                                    <span class="font-extrabold text-slate-900 text-xs truncate" x-text="apt.student_name"></span>
+                                                </div>
+                                                <p class="text-[11px] text-slate-600 font-medium truncate mt-0.5">
+                                                    <span class="font-bold text-slate-800" x-text="apt.purpose"></span> &bull; <span class="text-brand-600 font-semibold" x-text="apt.time_slot + ' WIB'"></span>
+                                                </p>
+                                            </div>
+
+                                            <!-- Tombol Lingkaran Huruf i Kecil yang Terlihat Jelas -->
+                                            <button type="button" 
+                                                    @click="expandedAptId = (expandedAptId === apt.id ? null : apt.id)"
+                                                    @mouseenter="expandedAptId = apt.id"
+                                                    class="w-7 h-7 rounded-full bg-brand-600 hover:bg-brand-700 text-white flex items-center justify-center shadow-xs transition-all flex-shrink-0"
+                                                    title="Klik / Hover untuk melihat data mahasiswa lengkap">
+                                                <span class="font-serif italic font-extrabold text-sm leading-none">i</span>
+                                            </button>
+                                        </div>
+
+                                        <!-- Kartu Detail Informasi Mahasiswa (Inline Expandable - Bebas dari Isu Terpotong/Clipping) -->
+                                        <div x-show="expandedAptId === apt.id" x-cloak 
+                                             x-transition:enter="transition ease-out duration-150"
+                                             x-transition:enter-start="opacity-0 scale-98"
+                                             x-transition:enter-end="opacity-100 scale-100"
+                                             class="p-3.5 bg-slate-900 text-white rounded-xl text-xs space-y-2 border border-slate-800 shadow-md">
+                                            <div class="flex items-center justify-between border-b border-slate-700 pb-1.5">
+                                                <span class="font-mono text-brand-400 font-bold text-[11px]" x-text="apt.booking_code"></span>
+                                                <span class="text-[10px] px-2 py-0.5 rounded bg-slate-800 uppercase font-bold text-slate-300" x-text="apt.status"></span>
+                                            </div>
+                                            <div class="grid grid-cols-2 gap-2 text-[11px]">
+                                                <div><span class="text-slate-400">NIM:</span> <strong class="text-white block font-semibold" x-text="apt.nim"></strong></div>
+                                                <div><span class="text-slate-400">Program Studi:</span> <strong class="text-white block font-semibold" x-text="apt.department"></strong></div>
+                                                <div class="col-span-2"><span class="text-slate-400">Email Mahasiswa:</span> <strong class="text-white block font-semibold" x-text="apt.student_email"></strong></div>
+                                                <div class="col-span-2"><span class="text-slate-400">Waktu Bimbingan:</span> <strong class="text-brand-300 block font-semibold" x-text="apt.time_slot + ' WIB'"></strong></div>
+                                            </div>
+                                            <template x-if="apt.notes">
+                                                <div class="bg-slate-800 p-2.5 rounded-lg text-[11px] text-slate-300 italic border border-slate-700">
+                                                    "<span x-text="apt.notes"></span>"
+                                                </div>
+                                            </template>
+                                        </div>
+                                    </div>
+                                </template>
                             </div>
                         </template>
 
-                        <template x-if="unavailableRanges.length === 0">
-                            <p class="text-center text-[11px] text-slate-400 py-4">Belum ada jam off khusus yang ditambahkan. Seluruh jam default harian aktif.</p>
+                        <template x-if="dayAppointments.length === 0">
+                            <p class="text-center text-[11px] text-slate-400 py-3 bg-slate-50 border border-dashed border-slate-200 rounded-xl">
+                                Belum ada mahasiswa yang mendaftar pada tanggal ini.
+                            </p>
                         </template>
                     </div>
                 </div>
 
-                <!-- SECTION: LIST MAHASISWA MENDAFTAR TANGGAL INI -->
-                <div class="border-t border-slate-200 pt-4 space-y-3">
-                    <div class="flex items-center justify-between">
-                        <label class="block text-xs font-bold text-slate-700 uppercase flex items-center gap-1.5">
-                            <i data-lucide="users" class="w-4 h-4 text-brand-600"></i>
-                            <span>Daftar Mahasiswa Mendaftar</span>
-                            <span class="px-2 py-0.5 rounded-full bg-brand-100 text-brand-700 text-[11px] font-extrabold" x-text="dayAppointments.length + ' Mahasiswa'"></span>
-                        </label>
+                <!-- Modal Footer Buttons -->
+                <div class="p-6 border-t border-slate-100 bg-slate-50/50 flex items-center justify-between gap-3 flex-shrink-0">
+                    <template x-if="hasOverride">
+                        <button type="button" @click="resetDayOverride()" class="px-4 py-2 bg-rose-50 text-rose-700 hover:bg-rose-100 rounded-xl text-xs font-bold transition-all">
+                            Reset Ke Default
+                        </button>
+                    </template>
+                    <template x-if="!hasOverride">
+                        <div></div>
+                    </template>
+
+                    <div class="flex items-center gap-2">
+                        <button type="button" @click="modalOpen = false" class="px-4 py-2 border border-slate-300 text-slate-700 hover:bg-slate-100 rounded-xl text-xs font-bold transition-all">
+                            Batal
+                        </button>
+                        <button type="button" @click="saveDayOverride()" class="px-5 py-2 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-xs font-bold shadow-xs transition-all flex items-center gap-1.5">
+                            <i data-lucide="save" class="w-4 h-4"></i> Simpan Tanggal
+                        </button>
                     </div>
-
-                    <template x-if="dayAppointments.length > 0">
-                        <div class="space-y-2.5 max-h-64 overflow-y-auto pr-1" x-data="{ expandedAptId: null }">
-                            <template x-for="apt in dayAppointments" :key="apt.id">
-                                <div class="p-3.5 rounded-2xl border border-slate-200 bg-slate-50/80 hover:bg-white hover:border-brand-300 transition-all space-y-2">
-                                    <div class="flex items-center justify-between gap-3">
-                                        <div class="overflow-hidden flex-grow">
-                                            <div class="flex items-center gap-2">
-                                                <span class="font-extrabold text-slate-900 text-xs truncate" x-text="apt.student_name"></span>
-                                            </div>
-                                            <p class="text-[11px] text-slate-600 font-medium truncate mt-0.5">
-                                                <span class="font-bold text-slate-800" x-text="apt.purpose"></span> &bull; <span class="text-brand-600 font-semibold" x-text="apt.time_slot + ' WIB'"></span>
-                                            </p>
-                                        </div>
-
-                                        <!-- Tombol Lingkaran Huruf i Kecil yang Terlihat Jelas -->
-                                        <button type="button" 
-                                                @click="expandedAptId = (expandedAptId === apt.id ? null : apt.id)"
-                                                @mouseenter="expandedAptId = apt.id"
-                                                class="w-7 h-7 rounded-full bg-brand-600 hover:bg-brand-700 text-white flex items-center justify-center shadow-xs transition-all flex-shrink-0"
-                                                title="Klik / Hover untuk melihat data mahasiswa lengkap">
-                                            <span class="font-serif italic font-extrabold text-sm leading-none">i</span>
-                                        </button>
-                                    </div>
-
-                                    <!-- Kartu Detail Informasi Mahasiswa (Inline Expandable - Bebas dari Isu Terpotong/Clipping) -->
-                                    <div x-show="expandedAptId === apt.id" x-cloak 
-                                         x-transition:enter="transition ease-out duration-150"
-                                         x-transition:enter-start="opacity-0 scale-98"
-                                         x-transition:enter-end="opacity-100 scale-100"
-                                         class="p-3.5 bg-slate-900 text-white rounded-xl text-xs space-y-2 border border-slate-800 shadow-md">
-                                        <div class="flex items-center justify-between border-b border-slate-700 pb-1.5">
-                                            <span class="font-mono text-brand-400 font-bold text-[11px]" x-text="apt.booking_code"></span>
-                                            <span class="text-[10px] px-2 py-0.5 rounded bg-slate-800 uppercase font-bold text-slate-300" x-text="apt.status"></span>
-                                        </div>
-                                        <div class="grid grid-cols-2 gap-2 text-[11px]">
-                                            <div><span class="text-slate-400">NIM:</span> <strong class="text-white block font-semibold" x-text="apt.nim"></strong></div>
-                                            <div><span class="text-slate-400">Program Studi:</span> <strong class="text-white block font-semibold" x-text="apt.department"></strong></div>
-                                            <div class="col-span-2"><span class="text-slate-400">Email Mahasiswa:</span> <strong class="text-white block font-semibold" x-text="apt.student_email"></strong></div>
-                                            <div class="col-span-2"><span class="text-slate-400">Waktu Bimbingan:</span> <strong class="text-brand-300 block font-semibold" x-text="apt.time_slot + ' WIB'"></strong></div>
-                                        </div>
-                                        <template x-if="apt.notes">
-                                            <div class="bg-slate-800 p-2.5 rounded-lg text-[11px] text-slate-300 italic border border-slate-700">
-                                                "<span x-text="apt.notes"></span>"
-                                            </div>
-                                        </template>
-                                    </div>
-                                </div>
-                            </template>
-                        </div>
-                    </template>
-
-                    <template x-if="dayAppointments.length === 0">
-                        <p class="text-center text-[11px] text-slate-400 py-3 bg-slate-50 border border-dashed border-slate-200 rounded-xl">
-                            Belum ada mahasiswa yang mendaftar pada tanggal ini.
-                        </p>
-                    </template>
                 </div>
+
             </div>
-
-            <!-- Modal Footer Buttons -->
-            <div class="p-6 border-t border-slate-100 bg-slate-50/50 flex items-center justify-between gap-3 flex-shrink-0">
-                <template x-if="hasOverride">
-                    <button type="button" @click="resetDayOverride()" class="px-4 py-2 bg-rose-50 text-rose-700 hover:bg-rose-100 rounded-xl text-xs font-bold transition-all">
-                        Reset Ke Default
-                    </button>
-                </template>
-                <template x-if="!hasOverride">
-                    <div></div>
-                </template>
-
-                <div class="flex items-center gap-2">
-                    <button type="button" @click="modalOpen = false" class="px-4 py-2 border border-slate-300 text-slate-700 hover:bg-slate-100 rounded-xl text-xs font-bold transition-all">
-                        Batal
-                    </button>
-                    <button type="button" @click="saveDayOverride()" class="px-5 py-2 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-xs font-bold shadow-xs transition-all flex items-center gap-1.5">
-                        <i data-lucide="save" class="w-4 h-4"></i> Simpan Tanggal
-                    </button>
-                </div>
-            </div>
-
         </div>
-    </div>
+    </template>
 
 
     <!-- MODAL REJECT -->
-    <div x-show="rejectModalOpen" x-cloak class="fixed inset-0 z-[9999] overflow-y-auto bg-slate-900/60 backdrop-blur-xs p-4 flex items-center justify-center min-h-screen">
-        <div @click.outside="rejectModalOpen = false" class="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-md w-full p-6 space-y-4 my-auto">
-            <h3 class="text-base font-bold text-slate-900">Tolak Janji Bimbingan</h3>
-            <p class="text-xs text-slate-500">Berikan alasan penolakan untuk mahasiswa <strong x-text="selectedName"></strong> (<span x-text="selectedCode"></span>).</p>
-            
-            <form @submit.prevent="submitReject()" class="space-y-4">
-                <textarea x-model="rejectReason" required rows="3" placeholder="Alasan penolakan..." class="w-full p-3 border border-slate-300 rounded-xl text-xs font-medium focus:ring-2 focus:ring-rose-500"></textarea>
-                <div class="flex justify-end gap-2">
-                    <button type="button" @click="rejectModalOpen = false" class="px-4 py-2 border border-slate-300 rounded-xl text-xs font-bold hover:bg-slate-100">Batal</button>
-                    <button type="submit" class="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold shadow-xs">Tolak Janji</button>
-                </div>
-            </form>
-            <!-- MODAL RESCHEDULE (LENGKAP DENGAN PREVIEW KUOTA & AVAILABILITY LIVE) -->
-    <div x-show="rescheduleModalOpen" x-cloak class="fixed inset-0 z-[9999] overflow-y-auto bg-slate-900/60 backdrop-blur-xs p-4 flex items-center justify-center min-h-screen">
-        <div @click.outside="rescheduleModalOpen = false" class="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-md w-full p-6 space-y-4 my-auto">
-            <h3 class="text-base font-bold text-slate-900">Perubahan Jadwal Bimbingan (Reschedule)</h3>
-            <p class="text-xs text-slate-500">Pilih tanggal & jam pengganti untuk <strong x-text="selectedName"></strong> (<span x-text="selectedCode"></span>). Perubahan ini otomatis disetujui.</p>
+    <template x-teleport="body">
+        <div x-show="rejectModalOpen" x-cloak class="fixed inset-0 z-[9999] overflow-y-auto bg-slate-900/60 backdrop-blur-xs p-4 flex items-center justify-center min-h-screen">
+            <div @click.outside="rejectModalOpen = false" class="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-md w-full p-6 space-y-4 my-auto">
+                <h3 class="text-base font-bold text-slate-900">Tolak Janji Bimbingan</h3>
+                <p class="text-xs text-slate-500">Berikan alasan penolakan untuk mahasiswa <strong x-text="selectedName"></strong> (<span x-text="selectedCode"></span>).</p>
+                
+                <form @submit.prevent="submitReject()" class="space-y-4">
+                    <textarea x-model="rejectReason" required rows="3" placeholder="Alasan penolakan..." class="w-full p-3 border border-slate-300 rounded-xl text-xs font-medium focus:ring-2 focus:ring-rose-500"></textarea>
+                    <div class="flex justify-end gap-2">
+                        <button type="button" @click="rejectModalOpen = false" class="px-4 py-2 border border-slate-300 rounded-xl text-xs font-bold hover:bg-slate-100">Batal</button>
+                        <button type="submit" class="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold shadow-xs">Tolak Janji</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </template>
 
-            <div class="space-y-4">
-                <div>
-                    <label class="block text-xs font-bold text-slate-700 mb-1">Tanggal Usulan Baru</label>
-                    <input type="date" x-model="proposedDate" @change="fetchSlotsForDate(proposedDate)" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs font-semibold focus:ring-1 focus:ring-brand-500">
-                </div>
+    <!-- MODAL RESCHEDULE (LENGKAP DENGAN PREVIEW KUOTA & AVAILABILITY LIVE) -->
+    <template x-teleport="body">
+        <div x-show="rescheduleModalOpen" x-cloak class="fixed inset-0 z-[9999] overflow-y-auto bg-slate-900/60 backdrop-blur-xs p-4 flex items-center justify-center min-h-screen">
+            <div @click.outside="rescheduleModalOpen = false" class="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-md w-full p-6 space-y-4 my-auto">
+                <h3 class="text-base font-bold text-slate-900">Perubahan Jadwal Bimbingan (Reschedule)</h3>
+                <p class="text-xs text-slate-500">Pilih tanggal & jam pengganti untuk <strong x-text="selectedName"></strong> (<span x-text="selectedCode"></span>). Perubahan ini otomatis disetujui.</p>
 
-                <div>
-                    <label class="block text-xs font-bold text-slate-700 mb-1">Pilihan Slot Jam Available</label>
-                    <template x-if="loadingSlots">
-                        <div class="text-xs text-slate-400 py-2 italic flex items-center gap-1.5">
-                            <i data-lucide="loader-2" class="w-3.5 h-3.5 animate-spin text-brand-600"></i> Memeriksa kuota & status jam...
-                        </div>
-                    </template>
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">Tanggal Usulan Baru</label>
+                        <input type="date" x-model="proposedDate" @change="fetchSlotsForDate(proposedDate)" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs font-semibold focus:ring-1 focus:ring-brand-500">
+                    </div>
 
-                    <template x-if="!loadingSlots && isBlocked">
-                        <div class="p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-700 font-semibold">
-                            ⚠️ Tanggal ini Libur / Berhalangan: <span x-text="blockedReason"></span>
-                        </div>
-                    </template>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">Pilihan Slot Jam Available</label>
+                        <template x-if="loadingSlots">
+                            <div class="text-xs text-slate-400 py-2 italic flex items-center gap-1.5">
+                                <i data-lucide="loader-2" class="w-3.5 h-3.5 animate-spin text-brand-600"></i> Memeriksa kuota & status jam...
+                            </div>
+                        </template>
 
-                    <template x-if="!loadingSlots && !isBlocked">
-                        <select x-model="proposedSlot" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs font-semibold focus:ring-1 focus:ring-brand-500">
-                            <template x-for="s in availableSlots" :key="s.time_slot">
-                                <option :value="s.time_slot" :disabled="!s.is_available" 
-                                        x-text="s.time_slot + ' WIB — ' + (s.is_available ? 'Sisa ' + s.remaining + ' Kuota' : (s.disabled_reason || 'Penuh'))">
-                                </option>
-                            </template>
-                        </select>
-                    </template>
-                </div>
+                        <template x-if="!loadingSlots && isBlocked">
+                            <div class="p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-700 font-semibold">
+                                ⚠️ Tanggal ini Libur / Berhalangan: <span x-text="blockedReason"></span>
+                            </div>
+                        </template>
 
-                <div>
-                    <label class="block text-xs font-bold text-slate-700 mb-1">Alasan Perubahan Jadwal</label>
-                    <textarea x-model="rescheduleReason" rows="2" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs focus:ring-1 focus:ring-brand-500" placeholder="Rapat"></textarea>
-                </div>
+                        <template x-if="!loadingSlots && !isBlocked">
+                            <select x-model="proposedSlot" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs font-semibold focus:ring-1 focus:ring-brand-500">
+                                <template x-for="s in availableSlots" :key="s.time_slot">
+                                    <option :value="s.time_slot" :disabled="!s.is_available" 
+                                            x-text="s.time_slot + ' WIB — ' + (s.is_available ? 'Sisa ' + s.remaining + ' Kuota' : (s.disabled_reason || 'Penuh'))">
+                                    </option>
+                                </template>
+                            </select>
+                        </template>
+                    </div>
 
-                <div class="flex justify-end gap-2 pt-2">
-                    <button type="button" @click="rescheduleModalOpen = false" class="px-4 py-2 border border-slate-300 hover:bg-slate-50 rounded-xl text-xs font-bold text-slate-600">Batal</button>
-                    <button type="button" @click="submitReschedule()" :disabled="actionLoadingId === selectedId || (isBlocked || !proposedSlot)" class="px-4 py-2 bg-brand-600 hover:bg-brand-700 disabled:opacity-50 text-white rounded-xl text-xs font-bold">Simpan Perubahan Jadwal</button>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">Alasan Perubahan Jadwal</label>
+                        <textarea x-model="rescheduleReason" rows="2" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs focus:ring-1 focus:ring-brand-500" placeholder="Rapat"></textarea>
+                    </div>
+
+                    <div class="flex justify-end gap-2 pt-2">
+                        <button type="button" @click="rescheduleModalOpen = false" class="px-4 py-2 border border-slate-300 hover:bg-slate-50 rounded-xl text-xs font-bold text-slate-600">Batal</button>
+                        <button type="button" @click="submitReschedule()" :disabled="actionLoadingId === selectedId || (isBlocked || !proposedSlot)" class="px-4 py-2 bg-brand-600 hover:bg-brand-700 disabled:opacity-50 text-white rounded-xl text-xs font-bold">Simpan Perubahan Jadwal</button>
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
+    </template>
         </div>
     </div>
 

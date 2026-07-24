@@ -488,176 +488,182 @@
     </div>
 
     <!-- MODAL 1: REJECT APPOINTMENT -->
-    <div x-show="rejectModalOpen" x-cloak class="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
-        <div @click.away="rejectModalOpen = false" class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
-            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
-                <h3 class="font-bold text-base text-rose-700 flex items-center gap-2">
-                    <i data-lucide="x-circle" class="w-5 h-5"></i> Tolak Janji Bimbingan
-                </h3>
-                <button @click="rejectModalOpen = false" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" class="w-5 h-5"></i></button>
+    <template x-teleport="body">
+        <div x-show="rejectModalOpen" x-cloak class="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
+            <div @click.away="rejectModalOpen = false" class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
+                <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                    <h3 class="font-bold text-base text-rose-700 flex items-center gap-2">
+                        <i data-lucide="x-circle" class="w-5 h-5"></i> Tolak Janji Bimbingan
+                    </h3>
+                    <button @click="rejectModalOpen = false" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" class="w-5 h-5"></i></button>
+                </div>
+
+                <p class="text-xs text-slate-600">
+                    Anda akan menolak janji bimbingan dari <strong x-text="selectedName"></strong> (Kode: <span class="font-mono" x-text="selectedCode"></span>). Email penolakan otomatis akan dikirim ke mahasiswa.
+                </p>
+
+                <form :action="`{{ url('admin/appointments') }}/${selectedId}/reject`" method="POST" class="space-y-4">
+                    @csrf
+                    <div>
+                        <label for="reject_reason" class="block text-xs font-semibold text-slate-700 mb-1">Alasan Penolakan <span class="text-rose-500">*</span></label>
+                        <textarea name="reason" id="reject_reason" required rows="3" x-model="rejectReason"
+                                  placeholder="Tuliskan alasan penolakan agar mahasiswa dapat memahami..."
+                                  class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs focus:ring-2 focus:ring-rose-500"></textarea>
+                    </div>
+
+                    <div class="flex items-center justify-end gap-2 pt-2">
+                        <button type="button" @click="rejectModalOpen = false" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl">Batal</button>
+                        <button type="submit" class="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-xl shadow-md">Kirim Penolakan</button>
+                    </div>
+                </form>
             </div>
-
-            <p class="text-xs text-slate-600">
-                Anda akan menolak janji bimbingan dari <strong x-text="selectedName"></strong> (Kode: <span class="font-mono" x-text="selectedCode"></span>). Email penolakan otomatis akan dikirim ke mahasiswa.
-            </p>
-
-            <form :action="`{{ url('admin/appointments') }}/${selectedId}/reject`" method="POST" class="space-y-4">
-                @csrf
-                <div>
-                    <label for="reject_reason" class="block text-xs font-semibold text-slate-700 mb-1">Alasan Penolakan <span class="text-rose-500">*</span></label>
-                    <textarea name="reason" id="reject_reason" required rows="3" x-model="rejectReason"
-                              placeholder="Tuliskan alasan penolakan agar mahasiswa dapat memahami..."
-                              class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs focus:ring-2 focus:ring-rose-500"></textarea>
-                </div>
-
-                <div class="flex items-center justify-end gap-2 pt-2">
-                    <button type="button" @click="rejectModalOpen = false" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl">Batal</button>
-                    <button type="submit" class="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-xl shadow-md">Kirim Penolakan</button>
-                </div>
-            </form>
         </div>
-    </div>
+    </template>
 
     <!-- MODAL 2: RESCHEDULE APPOINTMENT -->
-    <div x-show="rescheduleModalOpen" x-cloak class="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
-        <div @click.away="rescheduleModalOpen = false" class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4">
-            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
-                <h3 class="font-bold text-base text-indigo-700 flex items-center gap-2">
-                    <i data-lucide="calendar-sync" class="w-5 h-5"></i> Ubah Jadwal Bimbingan (Reschedule)
-                </h3>
-                <button @click="rescheduleModalOpen = false" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" class="w-5 h-5"></i></button>
+    <template x-teleport="body">
+        <div x-show="rescheduleModalOpen" x-cloak class="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
+            <div @click.away="rescheduleModalOpen = false" class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4">
+                <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                    <h3 class="font-bold text-base text-indigo-700 flex items-center gap-2">
+                        <i data-lucide="calendar-sync" class="w-5 h-5"></i> Ubah Jadwal Bimbingan (Reschedule)
+                    </h3>
+                    <button @click="rescheduleModalOpen = false" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" class="w-5 h-5"></i></button>
+                </div>
+
+                <p class="text-xs text-slate-600">
+                    Pilih tanggal & jam baru untuk <strong x-text="selectedName"></strong>. Perubahan ini otomatis disetujui dan email pemberitahuan akan dikirim ke mahasiswa.
+                </p>
+
+                <form :action="`{{ url('admin/appointments') }}/${selectedId}/reschedule`" method="POST" class="space-y-4">
+                    @csrf
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">Tanggal Usulan Baru <span class="text-rose-500">*</span></label>
+                            <input type="date" name="proposed_date" required min="{{ date('Y-m-d') }}" x-model="proposedDate"
+                                   class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs font-semibold">
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">Slot Waktu Baru <span class="text-rose-500">*</span></label>
+                            <select name="proposed_time_slot" required x-model="proposedSlot" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs font-semibold bg-white">
+                                <option value="09:00 - 10:00">09:00 - 10:00 WIB</option>
+                                <option value="10:00 - 11:00">10:00 - 11:00 WIB</option>
+                                <option value="13:00 - 14:00">13:00 - 14:00 WIB</option>
+                                <option value="14:00 - 15:00">14:00 - 15:00 WIB</option>
+                                <option value="15:00 - 16:00">15:00 - 16:00 WIB</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Alasan Perubahan Jadwal <span class="text-rose-500">*</span></label>
+                        <textarea name="reason" required rows="3" x-model="rescheduleReason"
+                                  placeholder="Contoh: Ada rapat fakultas mendadak pada jam tersebut..."
+                                  class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs focus:ring-2 focus:ring-indigo-500"></textarea>
+                    </div>
+
+                    <div class="flex items-center justify-end gap-2 pt-2">
+                        <button type="button" @click="rescheduleModalOpen = false" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl">Batal</button>
+                        <button type="submit" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl shadow-md">Simpan Perubahan Jadwal</button>
+                    </div>
+                </form>
             </div>
-
-            <p class="text-xs text-slate-600">
-                Pilih tanggal & jam baru untuk <strong x-text="selectedName"></strong>. Perubahan ini otomatis disetujui dan email pemberitahuan akan dikirim ke mahasiswa.
-            </p>
-
-            <form :action="`{{ url('admin/appointments') }}/${selectedId}/reschedule`" method="POST" class="space-y-4">
-                @csrf
-
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-700 mb-1">Tanggal Usulan Baru <span class="text-rose-500">*</span></label>
-                        <input type="date" name="proposed_date" required min="{{ date('Y-m-d') }}" x-model="proposedDate"
-                               class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs font-semibold">
-                    </div>
-
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-700 mb-1">Slot Waktu Baru <span class="text-rose-500">*</span></label>
-                        <select name="proposed_time_slot" required x-model="proposedSlot" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs font-semibold bg-white">
-                            <option value="09:00 - 10:00">09:00 - 10:00 WIB</option>
-                            <option value="10:00 - 11:00">10:00 - 11:00 WIB</option>
-                            <option value="13:00 - 14:00">13:00 - 14:00 WIB</option>
-                            <option value="14:00 - 15:00">14:00 - 15:00 WIB</option>
-                            <option value="15:00 - 16:00">15:00 - 16:00 WIB</option>
-                        </select>
-                    </div>
-                </div>
-
-                <div>
-                    <label class="block text-xs font-semibold text-slate-700 mb-1">Alasan Perubahan Jadwal <span class="text-rose-500">*</span></label>
-                    <textarea name="reason" required rows="3" x-model="rescheduleReason"
-                              placeholder="Contoh: Ada rapat fakultas mendadak pada jam tersebut..."
-                              class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs focus:ring-2 focus:ring-indigo-500"></textarea>
-                </div>
-
-                <div class="flex items-center justify-end gap-2 pt-2">
-                    <button type="button" @click="rescheduleModalOpen = false" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl">Batal</button>
-                    <button type="submit" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl shadow-md">Simpan Perubahan Jadwal</button>
-                </div>
-            </form>
         </div>
-    </div>
+    </template>
 
     <!-- Mandatory Setup Guide Modal -->
     @if(isset($showSetupModal) && $showSetupModal)
-    <div x-data="{ setupModalOpen: true }" x-show="setupModalOpen" x-cloak
-         class="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-xs">
-        <div class="bg-white rounded-3xl max-w-lg w-full shadow-2xl border border-slate-100 overflow-hidden transform transition-all animate-in fade-in zoom-in duration-200">
-            <!-- Modal Header -->
-            <div class="bg-gradient-to-r from-brand-600 to-indigo-600 p-6 text-white relative">
-                <div class="flex items-center gap-3">
-                    <div class="w-12 h-12 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center text-white font-bold text-xl shadow-inner">
-                        <i data-lucide="sparkles" class="w-6 h-6"></i>
+    <template x-teleport="body">
+        <div x-data="{ setupModalOpen: true }" x-show="setupModalOpen" x-cloak
+             class="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-xs">
+            <div class="bg-white rounded-3xl max-w-lg w-full shadow-2xl border border-slate-100 overflow-hidden transform transition-all animate-in fade-in zoom-in duration-200">
+                <!-- Modal Header -->
+                <div class="bg-gradient-to-r from-brand-600 to-indigo-600 p-6 text-white relative">
+                    <div class="flex items-center gap-3">
+                        <div class="w-12 h-12 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center text-white font-bold text-xl shadow-inner">
+                            <i data-lucide="sparkles" class="w-6 h-6"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-lg font-extrabold tracking-tight">Selamat Datang di Portal Bimbingan!</h3>
+                            <p class="text-xs text-brand-100 mt-0.5">Selesaikan 2 langkah konfigurasi dasar ini agar sistem bimbingan siap digunakan.</p>
+                        </div>
                     </div>
-                    <div>
-                        <h3 class="text-lg font-extrabold tracking-tight">Selamat Datang di Portal Bimbingan!</h3>
-                        <p class="text-xs text-brand-100 mt-0.5">Selesaikan 2 langkah konfigurasi dasar ini agar sistem bimbingan siap digunakan.</p>
-                    </div>
+                    <button @click="setupModalOpen = false" class="absolute top-4 right-4 text-white/70 hover:text-white p-1 rounded-xl hover:bg-white/10 transition-colors">
+                        <i data-lucide="x" class="w-5 h-5"></i>
+                    </button>
                 </div>
-                <button @click="setupModalOpen = false" class="absolute top-4 right-4 text-white/70 hover:text-white p-1 rounded-xl hover:bg-white/10 transition-colors">
-                    <i data-lucide="x" class="w-5 h-5"></i>
-                </button>
-            </div>
 
-            <!-- Modal Body Checklist -->
-            <div class="p-6 space-y-4">
-                <div class="text-xs font-bold uppercase tracking-wider text-slate-400">Panduan Konfigurasi Wajib Akun Baru:</div>
+                <!-- Modal Body Checklist -->
+                <div class="p-6 space-y-4">
+                    <div class="text-xs font-bold uppercase tracking-wider text-slate-400">Panduan Konfigurasi Wajib Akun Baru:</div>
 
-                <!-- Step 1: Profile -->
-                <div class="flex items-start gap-4 p-4 rounded-2xl border {{ $profileComplete ? 'bg-emerald-50/50 border-emerald-200' : 'bg-amber-50/50 border-amber-200' }} transition-all">
-                    <div class="w-8 h-8 rounded-xl {{ $profileComplete ? 'bg-emerald-500 text-white' : 'bg-amber-500 text-white' }} flex items-center justify-center flex-shrink-0 font-bold text-sm shadow-xs mt-0.5">
-                        @if($profileComplete)
-                            <i data-lucide="check" class="w-4 h-4"></i>
-                        @else
-                            1
-                        @endif
-                    </div>
-                    <div class="flex-grow min-w-0">
-                        <div class="flex items-center justify-between gap-2">
-                            <h4 class="text-sm font-bold text-slate-900">1. Lengkapi Profil Dosen</h4>
+                    <!-- Step 1: Profile -->
+                    <div class="flex items-start gap-4 p-4 rounded-2xl border {{ $profileComplete ? 'bg-emerald-50/50 border-emerald-200' : 'bg-amber-50/50 border-amber-200' }} transition-all">
+                        <div class="w-8 h-8 rounded-xl {{ $profileComplete ? 'bg-emerald-500 text-white' : 'bg-amber-500 text-white' }} flex items-center justify-center flex-shrink-0 font-bold text-sm shadow-xs mt-0.5">
                             @if($profileComplete)
-                                <span class="px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800 text-[10px] font-extrabold">Selesai</span>
+                                <i data-lucide="check" class="w-4 h-4"></i>
                             @else
-                                <span class="px-2 py-0.5 rounded-md bg-amber-100 text-amber-800 text-[10px] font-extrabold">Perlu Diisi</span>
+                                1
                             @endif
                         </div>
-                        <p class="text-xs text-slate-600 mt-1 leading-relaxed">Isi nama lengkap & gelar Anda agar mahasiswa dapat memilih nama Anda di pilihan dosen tujuan bimbingan.</p>
-                        @if(!$profileComplete)
-                            <a href="{{ route('admin.profile.index') }}" class="inline-flex items-center gap-1.5 mt-2 text-xs font-bold text-amber-700 hover:text-amber-900 hover:underline">
-                                Lengkapi Profil Sekarang <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
-                            </a>
-                        @endif
+                        <div class="flex-grow min-w-0">
+                            <div class="flex items-center justify-between gap-2">
+                                <h4 class="text-sm font-bold text-slate-900">1. Lengkapi Profil Dosen</h4>
+                                @if($profileComplete)
+                                    <span class="px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800 text-[10px] font-extrabold">Selesai</span>
+                                @else
+                                    <span class="px-2 py-0.5 rounded-md bg-amber-100 text-amber-800 text-[10px] font-extrabold">Perlu Diisi</span>
+                                @endif
+                            </div>
+                            <p class="text-xs text-slate-600 mt-1 leading-relaxed">Isi nama lengkap & gelar Anda agar mahasiswa dapat memilih nama Anda di pilihan dosen tujuan bimbingan.</p>
+                            @if(!$profileComplete)
+                                <a href="{{ route('admin.profile.index') }}" class="inline-flex items-center gap-1.5 mt-2 text-xs font-bold text-amber-700 hover:text-amber-900 hover:underline">
+                                    Lengkapi Profil Sekarang <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
+                                </a>
+                            @endif
+                        </div>
                     </div>
-                </div>
 
-                <!-- Step 2: SMTP -->
-                <div class="flex items-start gap-4 p-4 rounded-2xl border {{ $smtpComplete ? 'bg-emerald-50/50 border-emerald-200' : 'bg-amber-50/50 border-amber-200' }} transition-all">
-                    <div class="w-8 h-8 rounded-xl {{ $smtpComplete ? 'bg-emerald-500 text-white' : 'bg-amber-500 text-white' }} flex items-center justify-center flex-shrink-0 font-bold text-sm shadow-xs mt-0.5">
-                        @if($smtpComplete)
-                            <i data-lucide="check" class="w-4 h-4"></i>
-                        @else
-                            2
-                        @endif
-                    </div>
-                    <div class="flex-grow min-w-0">
-                        <div class="flex items-center justify-between gap-2">
-                            <h4 class="text-sm font-bold text-slate-900">2. Konfigurasi SMTP Email</h4>
+                    <!-- Step 2: SMTP -->
+                    <div class="flex items-start gap-4 p-4 rounded-2xl border {{ $smtpComplete ? 'bg-emerald-50/50 border-emerald-200' : 'bg-amber-50/50 border-amber-200' }} transition-all">
+                        <div class="w-8 h-8 rounded-xl {{ $smtpComplete ? 'bg-emerald-500 text-white' : 'bg-amber-500 text-white' }} flex items-center justify-center flex-shrink-0 font-bold text-sm shadow-xs mt-0.5">
                             @if($smtpComplete)
-                                <span class="px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800 text-[10px] font-extrabold">Aktif</span>
+                                <i data-lucide="check" class="w-4 h-4"></i>
                             @else
-                                <span class="px-2 py-0.5 rounded-md bg-amber-100 text-amber-800 text-[10px] font-extrabold">Perlu Diisi</span>
+                                2
                             @endif
                         </div>
-                        <p class="text-xs text-slate-600 mt-1 leading-relaxed">Atur server SMTP email untuk mengirimkan notifikasi persetujuan/penolakan jadwal bimbingan secara otomatis ke mahasiswa.</p>
-                        @if(!$smtpComplete)
-                            <a href="{{ route('admin.smtp.index') }}" class="inline-flex items-center gap-1.5 mt-2 text-xs font-bold text-amber-700 hover:text-amber-900 hover:underline">
-                                Setting SMTP Sekarang <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
-                            </a>
-                        @endif
+                        <div class="flex-grow min-w-0">
+                            <div class="flex items-center justify-between gap-2">
+                                <h4 class="text-sm font-bold text-slate-900">2. Konfigurasi SMTP Email</h4>
+                                @if($smtpComplete)
+                                    <span class="px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800 text-[10px] font-extrabold">Aktif</span>
+                                @else
+                                    <span class="px-2 py-0.5 rounded-md bg-amber-100 text-amber-800 text-[10px] font-extrabold">Perlu Diisi</span>
+                                @endif
+                            </div>
+                            <p class="text-xs text-slate-600 mt-1 leading-relaxed">Atur server SMTP email untuk mengirimkan notifikasi persetujuan/penolakan jadwal bimbingan secara otomatis ke mahasiswa.</p>
+                            @if(!$smtpComplete)
+                                <a href="{{ route('admin.smtp.index') }}" class="inline-flex items-center gap-1.5 mt-2 text-xs font-bold text-amber-700 hover:text-amber-900 hover:underline">
+                                    Setting SMTP Sekarang <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
+                                </a>
+                            @endif
+                        </div>
                     </div>
                 </div>
-            </div>
 
-            <!-- Modal Footer -->
-            <div class="p-6 bg-slate-50 border-t border-slate-100 flex items-center justify-between">
-                <span class="text-[11px] text-slate-500">Anda dapat mengubah pengaturan ini sewaktu-waktu di menu sidebar.</span>
-                <button @click="setupModalOpen = false" class="px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-xl shadow-xs transition-all">
-                    Mengerti, Lanjutkan
-                </button>
+                <!-- Modal Footer -->
+                <div class="p-6 bg-slate-50 border-t border-slate-100 flex items-center justify-between">
+                    <span class="text-[11px] text-slate-500">Anda dapat mengubah pengaturan ini sewaktu-waktu di menu sidebar.</span>
+                    <button @click="setupModalOpen = false" class="px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-xl shadow-xs transition-all">
+                        Mengerti, Lanjutkan
+                    </button>
+                </div>
             </div>
         </div>
-    </div>
+    </template>
     @endif
 
 </div>
