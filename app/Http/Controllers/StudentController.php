@@ -13,6 +13,7 @@ use App\Services\NotificationService;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 class StudentController extends Controller
@@ -262,41 +263,46 @@ class StudentController extends Controller
             return back()->withInput()->with('error', 'Kuota untuk slot waktu tersebut telah penuh. Silakan pilih slot atau tanggal lain.');
         }
 
-        // Handle attachment file
-        $filePath = null;
-        if ($request->hasFile('attachment')) {
-            $filePath = $request->file('attachment')->store('attachments', 'public');
-        }
+        // Process store within a DB transaction to ensure atomic execution
+        $appointment = DB::transaction(function () use ($request, $validated, $date, $userId) {
+            // Handle attachment file
+            $filePath = null;
+            if ($request->hasFile('attachment')) {
+                $filePath = $request->file('attachment')->store('attachments', 'public');
+            }
 
-        // Generate unique 7-digit alphanumeric booking code & token
-        do {
-            $bookingCode = strtoupper(Str::random(7));
-        } while (Appointment::where('booking_code', $bookingCode)->exists());
-        
-        $token = Str::random(32);
+            // Generate unique 7-digit alphanumeric booking code & token
+            do {
+                $bookingCode = strtoupper(Str::random(7));
+            } while (Appointment::where('booking_code', $bookingCode)->exists());
+            
+            $token = Str::random(32);
 
-        $appointment = Appointment::create([
-            'user_id' => $userId,
-            'booking_code' => $bookingCode,
-            'token' => $token,
-            'student_name' => $validated['student_name'],
-            'student_email' => $validated['student_email'],
-            'nim' => $validated['nim'],
-            'department' => $validated['department'],
-            'purpose' => $validated['purpose'],
-            'notes' => $validated['notes'] ?? null,
-            'file_path' => $filePath,
-            'appointment_date' => $date,
-            'time_slot' => $validated['time_slot'],
-            'status' => 'pending',
-        ]);
+            $appointment = Appointment::create([
+                'user_id' => $userId,
+                'booking_code' => $bookingCode,
+                'token' => $token,
+                'student_name' => $validated['student_name'],
+                'student_email' => $validated['student_email'],
+                'nim' => $validated['nim'],
+                'department' => $validated['department'],
+                'purpose' => $validated['purpose'],
+                'notes' => $validated['notes'] ?? null,
+                'file_path' => $filePath,
+                'appointment_date' => $date,
+                'time_slot' => $validated['time_slot'],
+                'status' => 'pending',
+            ]);
 
-        // Send booking confirmation email asynchronously or directly
-        NotificationService::send($appointment->student_email, new BookingConfirmationMail($appointment), $appointment->id);
+            // Send booking confirmation email
+            NotificationService::send($appointment->student_email, new BookingConfirmationMail($appointment), $appointment->id);
+
+            return $appointment;
+        });
 
         return redirect()->route('student.index')
             ->with('success_booking', [
-                'code' => $bookingCode,
+                'code' => $appointment->booking_code,
                 'name' => $appointment->student_name,
                 'date' => Carbon::parse($date)->translatedFormat('l, d F Y'),
                 'slot' => $appointment->time_slot,

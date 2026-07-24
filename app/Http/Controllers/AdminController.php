@@ -19,6 +19,7 @@ use App\Services\SmtpConfigService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
@@ -187,18 +188,29 @@ class AdminController extends Controller
 
     public function approveAppointment($id)
     {
-        $appointment = Appointment::findOrFail($id);
-        $appointment->update([
-            'status' => 'approved',
-        ]);
+        try {
+            $appointment = DB::transaction(function () use ($id) {
+                $appointment = Appointment::findOrFail($id);
+                $appointment->update([
+                    'status' => 'approved',
+                ]);
 
-        NotificationService::send($appointment->student_email, new AppointmentApprovedMail($appointment), $appointment->id);
+                NotificationService::send($appointment->student_email, new AppointmentApprovedMail($appointment), $appointment->id);
 
-        if (request()->expectsJson() || request()->ajax()) {
-            return response()->json(['success' => true, 'message' => "Janji Bimbingan ({$appointment->booking_code}) berhasil disetujui."]);
+                return $appointment;
+            });
+
+            if (request()->expectsJson() || request()->ajax()) {
+                return response()->json(['success' => true, 'message' => "Janji Bimbingan ({$appointment->booking_code}) berhasil disetujui."]);
+            }
+
+            return back()->with('success', "Janji Bimbingan ({$appointment->booking_code}) berhasil disetujui.");
+        } catch (\Exception $e) {
+            if (request()->expectsJson() || request()->ajax()) {
+                return response()->json(['success' => false, 'message' => 'Gagal menyetujui janji: ' . $e->getMessage()], 500);
+            }
+            return back()->with('error', 'Gagal menyetujui janji: ' . $e->getMessage());
         }
-
-        return back()->with('success', "Janji Bimbingan ({$appointment->booking_code}) berhasil disetujui.");
     }
 
     public function rejectAppointment(Request $request, $id)
@@ -207,19 +219,30 @@ class AdminController extends Controller
             'reason' => 'required|string|max:500',
         ]);
 
-        $appointment = Appointment::findOrFail($id);
-        $appointment->update([
-            'status' => 'rejected',
-            'reschedule_reason' => $request->reason,
-        ]);
+        try {
+            $appointment = DB::transaction(function () use ($request, $id) {
+                $appointment = Appointment::findOrFail($id);
+                $appointment->update([
+                    'status' => 'rejected',
+                    'reschedule_reason' => $request->reason,
+                ]);
 
-        NotificationService::send($appointment->student_email, new AppointmentRejectedMail($appointment), $appointment->id);
+                NotificationService::send($appointment->student_email, new AppointmentRejectedMail($appointment), $appointment->id);
 
-        if ($request->expectsJson() || $request->ajax()) {
-            return response()->json(['success' => true, 'message' => "Janji Bimbingan ({$appointment->booking_code}) telah ditolak."]);
+                return $appointment;
+            });
+
+            if ($request->expectsJson() || $request->ajax()) {
+                return response()->json(['success' => true, 'message' => "Janji Bimbingan ({$appointment->booking_code}) telah ditolak."]);
+            }
+
+            return back()->with('success', "Janji Bimbingan ({$appointment->booking_code}) telah ditolak.");
+        } catch (\Exception $e) {
+            if ($request->expectsJson() || $request->ajax()) {
+                return response()->json(['success' => false, 'message' => 'Gagal menolak janji: ' . $e->getMessage()], 500);
+            }
+            return back()->with('error', 'Gagal menolak janji: ' . $e->getMessage());
         }
-
-        return back()->with('success', "Janji Bimbingan ({$appointment->booking_code}) telah ditolak.");
     }
 
     public function completeAppointment($id)
