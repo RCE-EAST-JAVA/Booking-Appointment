@@ -21,11 +21,14 @@ class User extends Authenticatable
         'password',
         'role',
         'sync_bimbingan',
+        'sso_token',
+        'sso_token_expires_at',
     ];
 
     protected $hidden = [
         'password',
         'remember_token',
+        'sso_token',
     ];
 
     protected function casts(): array
@@ -34,6 +37,7 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'sync_bimbingan' => 'boolean',
+            'sso_token_expires_at' => 'datetime',
         ];
     }
 

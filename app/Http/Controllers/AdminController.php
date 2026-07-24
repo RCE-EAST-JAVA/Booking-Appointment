@@ -62,6 +62,44 @@ class AdminController extends Controller
         return redirect()->route('admin.login');
     }
 
+    /**
+     * SSO Login - Verify one-time token from RCE portal and auto-login.
+     */
+    public function ssoLogin(Request $request)
+    {
+        $token = $request->query('token');
+
+        if (empty($token)) {
+            return redirect()->route('admin.login')->withErrors(['sso' => 'Token SSO tidak valid.']);
+        }
+
+        // Find user by hashed token
+        $hashedToken = hash('sha256', $token);
+        $user = User::where('sso_token', $hashedToken)
+            ->where('sync_bimbingan', true)
+            ->first();
+
+        if (!$user) {
+            return redirect()->route('admin.login')->withErrors(['sso' => 'Token SSO tidak valid atau sudah digunakan.']);
+        }
+
+        // Check if token has expired
+        if ($user->sso_token_expires_at && $user->sso_token_expires_at->isPast()) {
+            // Clear expired token
+            $user->update(['sso_token' => null, 'sso_token_expires_at' => null]);
+            return redirect()->route('admin.login')->withErrors(['sso' => 'Token SSO sudah kedaluwarsa. Silakan coba lagi dari portal RCE.']);
+        }
+
+        // Clear the token (one-time use)
+        $user->update(['sso_token' => null, 'sso_token_expires_at' => null]);
+
+        // Login the user
+        Auth::login($user, true);
+        $request->session()->regenerate();
+
+        return redirect()->route('admin.dashboard');
+    }
+
     // --- Dashboard & Appointments ---
     public function dashboard(Request $request)
     {
