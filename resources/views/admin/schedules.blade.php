@@ -805,11 +805,6 @@ document.addEventListener('alpine:init', () => {
                                 <svg class="w-4 h-4 text-brand-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
                                 <span>Daftar Jam / Slot Available Yang Dibuka</span>
                             </label>
-                            <button type="button" @click="availableSlots.push('')" 
-                                    class="px-3 py-1.5 bg-brand-50 hover:bg-brand-100 text-brand-700 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shadow-2xs">
-                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
-                                <span>Tambah Jam / Slot</span>
-                            </button>
                         </div>
 
                         <!-- Quick Add Chips -->
@@ -842,8 +837,15 @@ document.addEventListener('alpine:init', () => {
                             </template>
 
                             <template x-if="availableSlots.length === 0">
-                                <p class="text-center text-[11px] text-slate-400 py-4">Belum ada slot jam yang dibuka. Klik "+ Tambah Jam / Slot" atau pilih opsi Tambah Cepat di atas.</p>
+                                <p class="text-center text-[11px] text-slate-400 py-4">Belum ada slot jam yang dibuka. Pilih opsi Tambah Cepat di atas atau klik tombol di bawah.</p>
                             </template>
+
+                            <!-- Tombol Tambah di Bawah Item Terakhir -->
+                            <button type="button" @click="availableSlots.push('')" 
+                                    class="w-full py-2.5 bg-white hover:bg-brand-50 border-2 border-dashed border-brand-300 hover:border-brand-500 text-brand-700 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-2xs mt-2">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
+                                <span>+ Tambah Sesi / Slot Jam</span>
+                            </button>
                         </div>
                     </div>
 
