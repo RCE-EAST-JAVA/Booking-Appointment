@@ -802,12 +802,13 @@ document.addEventListener('alpine:init', () => {
                     <div x-show="isAvailable" class="space-y-4 pt-3 mt-4 border-t border-slate-200/80">
                         <div class="flex items-center justify-between">
                             <label class="block text-xs font-bold text-slate-700 uppercase flex items-center gap-1.5">
-                                <i data-lucide="clock" class="w-4 h-4 text-brand-600"></i>
+                                <svg class="w-4 h-4 text-brand-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
                                 <span>Daftar Jam / Slot Available Yang Dibuka</span>
                             </label>
                             <button type="button" @click="availableSlots.push('')" 
                                     class="px-3 py-1.5 bg-brand-50 hover:bg-brand-100 text-brand-700 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shadow-2xs">
-                                <i data-lucide="plus" class="w-3.5 h-3.5"></i> Tambah Jam / Slot
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
+                                <span>Tambah Jam / Slot</span>
                             </button>
                         </div>
 
@@ -832,9 +833,10 @@ document.addEventListener('alpine:init', () => {
                                            placeholder="Contoh: 08:00 - 09:00" 
                                            class="w-full px-3 py-1.5 border border-slate-300 rounded-xl text-xs font-bold text-brand-700 focus:ring-2 focus:ring-brand-500">
                                     <button type="button" @click="availableSlots.splice(idx, 1)" 
-                                            class="px-2.5 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-xl text-xs font-bold transition-colors flex-shrink-0 flex items-center gap-1" 
+                                            class="px-2.5 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-xl text-xs font-bold transition-colors flex-shrink-0 flex items-center gap-1.5" 
                                             title="Hapus slot ini">
-                                        <i data-lucide="trash-2" class="w-3.5 h-3.5"></i> Hapus
+                                        <svg class="w-3.5 h-3.5 text-rose-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                                        <span>Hapus</span>
                                     </button>
                                 </div>
                             </template>
@@ -934,7 +936,8 @@ document.addEventListener('alpine:init', () => {
                             Batal
                         </button>
                         <button type="button" @click="saveDayOverride()" class="px-5 py-2 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-xs font-bold shadow-xs transition-all flex items-center gap-1.5">
-                            <i data-lucide="save" class="w-4 h-4"></i> Simpan Tanggal
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" /></svg>
+                            <span>Simpan Tanggal</span>
                         </button>
                     </div>
                 </div>
