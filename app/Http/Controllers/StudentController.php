@@ -25,6 +25,30 @@ class StudentController extends Controller
         return view('student.index', compact('lecturers', 'announcement'));
     }
 
+    public function getAvailableDates(Request $request): JsonResponse
+    {
+        $userId = $request->user_id 
+            ?? User::where('sync_bimbingan', true)->where('role', '!=', 'admin')->first()?->id 
+            ?? User::first()?->id;
+
+        $todayStr = Carbon::today()->toDateString();
+
+        $availableDates = DateOverride::where('date', '>=', $todayStr)
+            ->where('is_available', true)
+            ->where(function ($q) use ($userId) {
+                $q->whereNull('user_id')->orWhere('user_id', $userId);
+            })
+            ->pluck('date')
+            ->map(fn($d) => Carbon::parse($d)->format('Y-m-d'))
+            ->unique()
+            ->values()
+            ->toArray();
+
+        return response()->json([
+            'dates' => $availableDates
+        ]);
+    }
+
     public function getAvailableSlots(Request $request): JsonResponse
     {
         $request->validate([
@@ -39,60 +63,53 @@ class StudentController extends Controller
         $dateStr = $date->toDateString();
         $dayOfWeek = $date->dayOfWeek; // 0 (Sun) - 6 (Sat)
 
-        // 1. Check DateOverride table
+        // Check DateOverride table (Default is OFF/libur unless explicitly opened)
         $override = DateOverride::whereDate('date', $dateStr)
             ->where(function ($q) use ($userId) {
                 $q->whereNull('user_id')->orWhere('user_id', $userId);
             })
             ->first();
 
-        if ($override) {
-            if (!$override->is_available) {
-                return response()->json([
-                    'is_blocked' => true,
-                    'reason' => $override->reason ?: 'Tanggal ini diatur sebagai Hari Libur / Tutup Bimbingan.',
-                    'slots' => [],
-                ]);
-            }
+        if (!$override || !$override->is_available) {
+            return response()->json([
+                'is_blocked' => true,
+                'reason' => $override?->reason ?: 'Tanggal ini belum / tidak dibuka untuk pelayanan bimbingan oleh dosen.',
+                'slots' => [],
+            ]);
+        }
+
+        // Fetch schedules (or custom available slots from DateOverride)
+        $customAvailableSlots = $override->available_slots ?? [];
+
+        if (!empty($customAvailableSlots)) {
+            $schedules = collect($customAvailableSlots)->map(function ($slotStr) {
+                return (object)[
+                    'time_slot' => $slotStr,
+                    'quota' => 3, // Default quota per custom slot
+                ];
+            });
         } else {
-            // Check legacy BlockedDate table
-            $isBlocked = BlockedDate::whereDate('date', $dateStr)
-                ->where(function ($q) use ($userId) {
-                    $q->whereNull('user_id')->orWhere('user_id', $userId);
-                })
-                ->first();
+            $schedules = Schedule::where('day_of_week', $dayOfWeek)
+                ->where('is_active', true)
+                ->get();
 
-            if ($isBlocked) {
-                return response()->json([
-                    'is_blocked' => true,
-                    'reason' => $isBlocked->reason ?: 'Tanggal ini diblokir / Dosen Berhalangan.',
-                    'slots' => [],
-                ]);
+            if ($schedules->isEmpty()) {
+                $schedules = Schedule::where('is_active', true)
+                    ->get()
+                    ->unique('time_slot');
             }
-
-            // Default weekend check if no override exists
-            if ($dayOfWeek === 0 || $dayOfWeek === 6) {
-                return response()->json([
-                    'is_blocked' => true,
-                    'reason' => 'Hari ' . ($dayOfWeek === 0 ? 'Minggu' : 'Sabtu') . ' secara default libur / tidak melayani bimbingan.',
-                    'slots' => [],
+            if ($schedules->isEmpty()) {
+                $schedules = collect([
+                    (object)['time_slot' => '08:00 - 09:00', 'quota' => 3],
+                    (object)['time_slot' => '09:00 - 10:00', 'quota' => 3],
+                    (object)['time_slot' => '10:00 - 11:00', 'quota' => 3],
+                    (object)['time_slot' => '13:00 - 14:00', 'quota' => 3],
+                    (object)['time_slot' => '14:00 - 15:00', 'quota' => 3],
                 ]);
             }
         }
 
-        // Fetch schedules
-        $schedules = Schedule::where('day_of_week', $dayOfWeek)
-            ->where('is_active', true)
-            ->get();
-
-        // If weekend override is enabled but no weekend schedules defined, fallback to active schedules
-        if ($schedules->isEmpty() && ($dayOfWeek === 0 || $dayOfWeek === 6)) {
-            $schedules = Schedule::where('is_active', true)
-                ->get()
-                ->unique('time_slot');
-        }
-
-        $unavailableSlots = $override ? ($override->unavailable_slots ?? []) : [];
+        $unavailableSlots = $override->unavailable_slots ?? [];
         $slots = [];
 
         foreach ($schedules as $schedule) {
@@ -107,7 +124,6 @@ class StudentController extends Controller
                         $slotStartMin = Carbon::parse($slotStart)->format('H:i');
                         $slotEndMin = Carbon::parse($slotEnd)->format('H:i');
 
-                        // 1. Check single legacy range
                         if ($override->unavailable_start && $override->unavailable_end) {
                             $unavailStartMin = Carbon::parse($override->unavailable_start)->format('H:i');
                             $unavailEndMin = Carbon::parse($override->unavailable_end)->format('H:i');
@@ -116,7 +132,6 @@ class StudentController extends Controller
                             }
                         }
 
-                        // 2. Check multiple new ranges
                         if (!$isSlotDisabledByOverride && !empty($override->unavailable_ranges)) {
                             foreach ($override->unavailable_ranges as $range) {
                                 $rStart = $range['start'] ?? null;
@@ -149,9 +164,10 @@ class StudentController extends Controller
                 } catch (\Exception $e) {}
             }
 
+            // ONLY count approved / rescheduled / completed appointments against quota (pending does not reduce quota)
             $bookedCount = Appointment::whereDate('appointment_date', $dateStr)
                 ->where('time_slot', $schedule->time_slot)
-                ->whereIn('status', ['pending', 'approved', 'rescheduled'])
+                ->whereIn('status', ['approved', 'rescheduled', 'completed'])
                 ->where(function ($q) use ($userId) {
                     $q->whereNull('user_id')->orWhere('user_id', $userId);
                 })
@@ -208,8 +224,8 @@ class StudentController extends Controller
             })
             ->first();
 
-        if ($override && !$override->is_available) {
-            return back()->withInput()->with('error', 'Tanggal ini diatur sebagai hari libur / tutup bimbingan oleh dosen.');
+        if (!$override || !$override->is_available) {
+            return back()->withInput()->with('error', 'Tanggal ini belum / tidak dibuka untuk pelayanan bimbingan oleh dosen.');
         }
 
         $isSlotDisabledByRange = false;
@@ -222,7 +238,6 @@ class StudentController extends Controller
                     $slotStartMin = Carbon::parse($slotStart)->format('H:i');
                     $slotEndMin = Carbon::parse($slotEnd)->format('H:i');
 
-                    // 1. Check legacy single range
                     if ($override->unavailable_start && $override->unavailable_end) {
                         $unavailStartMin = Carbon::parse($override->unavailable_start)->format('H:i');
                         $unavailEndMin = Carbon::parse($override->unavailable_end)->format('H:i');
@@ -231,7 +246,6 @@ class StudentController extends Controller
                         }
                     }
 
-                    // 2. Check multiple new ranges
                     if (!$isSlotDisabledByRange && !empty($override->unavailable_ranges)) {
                         foreach ($override->unavailable_ranges as $range) {
                             $rStart = $range['start'] ?? null;
@@ -251,7 +265,7 @@ class StudentController extends Controller
             }
         }
 
-        if (($override && in_array($validated['time_slot'], $override->unavailable_slots ?? [])) || $isSlotDisabledByRange) {
+        if (in_array($validated['time_slot'], $override->unavailable_slots ?? []) || $isSlotDisabledByRange) {
             return back()->withInput()->with('error', 'Slot waktu ' . $validated['time_slot'] . ' WIB pada tanggal tersebut sedang tidak tersedia (berhalangan/rapat).');
         }
 
@@ -267,30 +281,24 @@ class StudentController extends Controller
             } catch (\Exception $e) {}
         }
 
-        // Verify quota
+        // Quota check: only count approved / rescheduled / completed appointments
+        $scheduleQuota = 3;
         $dayOfWeek = Carbon::parse($date)->dayOfWeek;
         $schedule = Schedule::where('day_of_week', $dayOfWeek)
             ->where('time_slot', $validated['time_slot'])
             ->where('is_active', true)
             ->first();
 
-        // Fallback for weekend override
-        if (!$schedule && ($dayOfWeek === 0 || $dayOfWeek === 6) && $override && $override->is_available) {
-            $schedule = Schedule::where('time_slot', $validated['time_slot'])
-                ->where('is_active', true)
-                ->first();
-        }
-
-        if (!$schedule) {
-            return back()->withInput()->with('error', 'Slot waktu yang dipilih tidak tersedia pada jadwal dosen.');
+        if ($schedule) {
+            $scheduleQuota = $schedule->quota;
         }
 
         $bookedCount = Appointment::whereDate('appointment_date', $date)
             ->where('time_slot', $validated['time_slot'])
-            ->whereIn('status', ['pending', 'approved', 'rescheduled'])
+            ->whereIn('status', ['approved', 'rescheduled', 'completed'])
             ->count();
 
-        if ($bookedCount >= $schedule->quota) {
+        if ($bookedCount >= $scheduleQuota) {
             return back()->withInput()->with('error', 'Kuota untuk slot waktu tersebut telah penuh. Silakan pilih slot atau tanggal lain.');
         }
 

@@ -16,6 +16,7 @@ class DateOverride extends Model
         'is_available',
         'reason',
         'unavailable_slots',
+        'available_slots',
         'unavailable_start',
         'unavailable_end',
         'unavailable_ranges',
@@ -25,6 +26,7 @@ class DateOverride extends Model
         'date' => 'date',
         'is_available' => 'boolean',
         'unavailable_slots' => 'array',
+        'available_slots' => 'array',
         'unavailable_ranges' => 'array',
     ];
 

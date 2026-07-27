@@ -47,7 +47,7 @@ return [
         'rce_db' => [
             'driver' => 'sqlite',
             'url' => env('DB_URL'),
-            'database' => env('RCE_DB_DATABASE', base_path('../public_html/database/database.sqlite')),
+            'database' => env('RCE_DB_DATABASE', env('DB_DATABASE', base_path('../public_html/database/database.sqlite'))),
             'prefix' => '',
             'foreign_key_constraints' => env('DB_FOREIGN_KEYS', true),
             'busy_timeout' => null,

@@ -20,12 +20,14 @@ class AppointmentSystemTest extends TestCase
         parent::setUp();
 
         // Create Admin Lecturer
-        $this->user = User::create([
-            'name' => 'Dr. Dosen',
-            'email' => 'admin@portal.ac.id',
-            'password' => bcrypt('password123'),
-            'role' => 'admin',
-        ]);
+        $this->user = User::firstOrCreate(
+            ['email' => 'admin@portal.ac.id'],
+            [
+                'name' => 'Dr. Dosen',
+                'password' => bcrypt('password123'),
+                'role' => 'admin',
+            ]
+        );
 
         // Create Monday Schedule
         Schedule::create([
@@ -61,6 +63,12 @@ class AppointmentSystemTest extends TestCase
         // Next Monday date
         $monday = date('Y-m-d', strtotime('next Monday'));
 
+        \App\Models\DateOverride::create([
+            'user_id' => $this->user->id,
+            'date' => $monday,
+            'is_available' => true,
+        ]);
+
         $response = $this->getJson(route('student.available-slots', ['date' => $monday]));
         $response->assertStatus(200);
         $response->assertJson([
@@ -80,6 +88,12 @@ class AppointmentSystemTest extends TestCase
     public function test_student_can_submit_booking()
     {
         $monday = date('Y-m-d', strtotime('next Monday'));
+
+        \App\Models\DateOverride::create([
+            'user_id' => $this->user->id,
+            'date' => $monday,
+            'is_available' => true,
+        ]);
 
         $response = $this->post(route('student.store'), [
             'student_name' => 'Budi Santoso',

@@ -26,29 +26,12 @@
     },
 
     openRescheduleModal(id, code, name, dateStr, slotStr) {
-        if (dateStr && slotStr) {
-            try {
-                let startTime = slotStr.split('-')[0].trim();
-                let sessionDateTime = new Date(`${dateStr}T${startTime}:00`);
-                let now = new Date();
-                let diffInMinutes = (sessionDateTime - now) / (1000 * 60);
-
-                if (diffInMinutes < 180) {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Reschedule Terkunci',
-                        text: 'Reschedule tidak dapat dilakukan karena waktu sesi bimbingan kurang dari 3 jam lagi dari jam sekarang.',
-                        confirmButtonColor: '#2563eb'
-                    });
-                    return;
-                }
-            } catch(e) {}
-        }
-
         this.selectedId = id;
         this.selectedCode = code;
         this.selectedName = name;
         this.rescheduleReason = '';
+        this.proposedDate = dateStr || '{{ date('Y-m-d') }}';
+        if (slotStr) this.proposedSlot = slotStr;
         this.rescheduleModalOpen = true;
     },
 
@@ -353,6 +336,9 @@
                             <div class="font-bold text-slate-900 text-sm mt-1">{{ $apt->student_name }}</div>
                             <div class="text-slate-500 text-[11px]">NIM: {{ $apt->nim }} &bull; {{ $apt->department }}</div>
                             <div class="text-slate-400 text-[10px] mt-0.5">{{ $apt->student_email }}</div>
+                            <div class="text-[10px] text-brand-700 font-semibold mt-1 bg-brand-50/80 px-2 py-0.5 rounded border border-brand-100 inline-block" title="Waktu Pengajuan Mahasiswa">
+                                Diajukan: {{ \Carbon\Carbon::parse($apt->created_at)->translatedFormat('d M Y H:i:s') }} WIB
+                            </div>
                         </td>
 
                         <!-- Purpose -->

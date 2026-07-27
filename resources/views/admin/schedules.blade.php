@@ -23,6 +23,7 @@ document.addEventListener('alpine:init', () => {
         isAvailable: true,
         reason: '',
         unavailableSlots: [],
+        availableSlots: [],
         unavailableStart: '',
         unavailableEnd: '',
         unavailableRanges: [],
@@ -75,29 +76,12 @@ document.addEventListener('alpine:init', () => {
         },
 
         openRescheduleModal(id, code, name, dateStr, slotStr) {
-            if (dateStr && slotStr) {
-                try {
-                    let startTime = slotStr.split('-')[0].trim();
-                    let sessionDateTime = new Date(`${dateStr}T${startTime}:00`);
-                    let now = new Date();
-                    let diffInMinutes = (sessionDateTime - now) / (1000 * 60);
-
-                    if (diffInMinutes < 180) {
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'Reschedule Terkunci',
-                            text: 'Reschedule tidak dapat dilakukan karena waktu sesi bimbingan kurang dari 3 jam lagi dari jam sekarang.',
-                            confirmButtonColor: '#2563eb'
-                        });
-                        return;
-                    }
-                } catch(e) {}
-            }
             this.selectedId = id;
             this.selectedCode = code;
             this.selectedName = name;
             this.rescheduleReason = '';
-            this.proposedDate = '{{ date('Y-m-d') }}';
+            this.proposedDate = dateStr || '{{ date('Y-m-d') }}';
+            if (slotStr) this.proposedSlot = slotStr;
             this.fetchRescheduleSlots();
             this.rescheduleModalOpen = true;
         },
@@ -374,6 +358,9 @@ document.addEventListener('alpine:init', () => {
             this.isAvailable = dayObj.is_available;
             this.reason = dayObj.reason || '';
             this.unavailableSlots = Array.isArray(dayObj.unavailable_slots) ? [...dayObj.unavailable_slots] : [];
+            this.availableSlots = Array.isArray(dayObj.available_slots) && dayObj.available_slots.length > 0
+                ? [...dayObj.available_slots]
+                : (this.masterSlots && this.masterSlots.length > 0 ? [...this.masterSlots] : ['08:00 - 09:00', '09:00 - 10:00', '10:00 - 11:00', '11:00 - 12:00', '13:00 - 14:00', '14:00 - 15:00']);
             this.unavailableStart = dayObj.unavailable_start || '';
             this.unavailableEnd = dayObj.unavailable_end || '';
             this.unavailableRanges = Array.isArray(dayObj.unavailable_ranges) ? JSON.parse(JSON.stringify(dayObj.unavailable_ranges)) : [];
@@ -381,6 +368,15 @@ document.addEventListener('alpine:init', () => {
             this.hasOverride = dayObj.has_override;
             
             this.modalOpen = true;
+        },
+
+        toggleAvailableSlot(slotStr) {
+            let idx = this.availableSlots.indexOf(slotStr);
+            if (idx > -1) {
+                this.availableSlots.splice(idx, 1);
+            } else {
+                this.availableSlots.push(slotStr);
+            }
         },
 
         saveDayOverride() {
@@ -415,6 +411,7 @@ document.addEventListener('alpine:init', () => {
                     is_available: this.isAvailable ? 1 : 0,
                     reason: this.reason,
                     unavailable_slots: this.unavailableSlots,
+                    available_slots: this.availableSlots,
                     unavailable_start: this.unavailableStart || null,
                     unavailable_end: this.unavailableEnd || null,
                     unavailable_ranges: this.unavailableRanges
@@ -606,120 +603,6 @@ document.addEventListener('alpine:init', () => {
                 </div>
             </div>
         </div>
-
-        <!-- SECTION 2: JAM KERJA DEFAULT & SLOT BIMBINGAN MINGGUAN -->
-        <div class="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
-            <div class="p-6 border-b border-slate-100 bg-slate-50/50">
-                <h2 class="text-base font-bold text-slate-900 flex items-center gap-2">
-                    <i data-lucide="clock" class="w-5 h-5 text-brand-600"></i> Slot Waktu & Kuota Default Bimbingan Mingguan
-                </h2>
-                <p class="text-xs text-slate-500">Tentukan jam layanan default harian yang berlaku berulang setiap minggunya.</p>
-            </div>
-
-            <div class="p-6 space-y-6">
-                @php
-                    $dayOrder = [1, 2, 3, 4, 5, 6, 0];
-                    $schedulesByDay = $schedules->groupBy('day_of_week');
-                @endphp
-
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    @foreach($dayOrder as $day)
-                    <div class="bg-white rounded-2xl border border-slate-200 shadow-2xs overflow-hidden flex flex-col justify-between" x-data="{ addFormOpen: false }">
-                        <div>
-                            <!-- Day Header -->
-                            <div class="px-5 py-3.5 bg-slate-50/50 border-b border-slate-100 flex items-center justify-between">
-                                <div class="flex items-center gap-2">
-                                    <span class="w-2 h-2 rounded-full bg-brand-600"></span>
-                                    <h3 class="text-sm font-extrabold text-slate-800">{{ $dayNames[$day] }}</h3>
-                                    <span class="text-xs text-slate-400 font-semibold">({{ $schedulesByDay->get($day)?->count() ?? 0 }} Sesi)</span>
-                                </div>
-                                <button type="button" @click="addFormOpen = !addFormOpen" class="px-2.5 py-1.5 bg-brand-50 hover:bg-brand-100 text-brand-700 rounded-xl text-xs font-bold transition-all flex items-center gap-1">
-                                    <i data-lucide="plus" class="w-3.5 h-3.5"></i> Tambah Sesi
-                                </button>
-                            </div>
-
-                            <!-- Inline Form to Add Sesi -->
-                            <div x-show="addFormOpen" x-cloak class="p-4 border-b border-slate-100 bg-slate-50/40">
-                                <form action="{{ route('admin.schedules.store') }}" method="POST" class="flex flex-wrap items-end gap-3">
-                                    @csrf
-                                    <input type="hidden" name="day_of_week" value="{{ $day }}">
-                                    <div class="flex-grow min-w-[140px]">
-                                        <label class="block text-[10px] font-bold text-slate-500 mb-1 uppercase tracking-wider">Slot Waktu (Jam)</label>
-                                        <input type="text" name="time_slot" required placeholder="Contoh: 08:00 - 09:00" class="w-full px-3 py-1.5 border border-slate-300 rounded-xl text-xs font-semibold bg-white">
-                                    </div>
-                                    <div class="w-20">
-                                        <label class="block text-[10px] font-bold text-slate-500 mb-1 uppercase tracking-wider">Kuota (Mhs)</label>
-                                        <input type="number" name="quota" required min="1" value="3" class="w-full px-3 py-1.5 border border-slate-300 rounded-xl text-xs font-semibold text-center bg-white">
-                                    </div>
-                                    <div class="flex gap-1.5">
-                                        <button type="submit" class="px-3 py-1.5 bg-brand-600 hover:bg-brand-700 text-white font-bold text-xs rounded-xl shadow-xs transition-all">
-                                            Simpan
-                                        </button>
-                                        <button type="button" @click="addFormOpen = false" class="px-2.5 py-1.5 border border-slate-300 text-slate-600 rounded-xl text-xs font-bold hover:bg-slate-100">
-                                            Batal
-                                        </button>
-                                    </div>
-                                </form>
-                            </div>
-
-                            <!-- List of Sesi for this Day -->
-                            <div class="divide-y divide-slate-100">
-                                @if($schedulesByDay->has($day) && $schedulesByDay->get($day)->isNotEmpty())
-                                    <table class="w-full text-left border-collapse">
-                                        <thead>
-                                            <tr class="bg-slate-50/20 text-[10px] font-bold uppercase tracking-wider text-slate-400 border-b border-slate-100">
-                                                <th class="py-2.5 px-5">Slot Waktu</th>
-                                                <th class="py-2.5 px-5">Kuota</th>
-                                                <th class="py-2.5 px-5">Status</th>
-                                                <th class="py-2.5 px-5 text-right">Aksi</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody class="divide-y divide-slate-100 text-xs">
-                                            @foreach($schedulesByDay->get($day) as $sched)
-                                            <tr class="hover:bg-slate-50/30 transition-colors">
-                                                <td class="py-3 px-5 font-mono font-bold text-brand-700">
-                                                    {{ $sched->time_slot }} WIB
-                                                </td>
-                                                <form action="{{ route('admin.schedules.update', $sched->id) }}" method="POST">
-                                                    @csrf
-                                                    <td class="py-3 px-5">
-                                                        <div class="flex items-center gap-1">
-                                                            <input type="number" name="quota" value="{{ $sched->quota }}" min="1" class="w-12 px-2 py-0.5 border border-slate-300 rounded text-xs font-bold text-center">
-                                                            <span class="text-slate-400 text-[10px]">mhs</span>
-                                                        </div>
-                                                    </td>
-                                                    <td class="py-3 px-5">
-                                                        <select name="is_active" class="px-1.5 py-0.5 border border-slate-300 rounded text-[11px] font-semibold bg-white">
-                                                            <option value="1" {{ $sched->is_active ? 'selected' : '' }}>Aktif</option>
-                                                            <option value="0" {{ !$sched->is_active ? 'selected' : '' }}>Non-Aktif</option>
-                                                        </select>
-                                                    </td>
-                                                    <td class="py-3 px-5 text-right space-x-1">
-                                                        <button type="submit" class="px-2 py-1 bg-slate-900 text-white rounded text-[10px] font-bold hover:bg-slate-800 transition-colors">
-                                                            Simpan
-                                                        </button>
-                                                </form>
-                                                        <form action="{{ route('admin.schedules.delete', $sched->id) }}" method="POST" class="inline">
-                                                            @csrf
-                                                            <button type="submit" onclick="return confirm('Hapus slot ini?');" class="px-2 py-1 bg-rose-50 text-rose-600 hover:bg-rose-100 rounded text-[10px] font-bold transition-all">
-                                                                Hapus
-                                                            </button>
-                                                        </form>
-                                                    </td>
-                                            </tr>
-                                            @endforeach
-                                        </tbody>
-                                    </table>
-                                @else
-                                    <div class="py-6 text-center text-slate-400 text-xs font-medium">Belum ada slot waktu untuk hari ini.</div>
-                                @endif
-                            </div>
-                        </div>
-                    </div>
-                    @endforeach
-                </div>
-            </div>
-        </div>
     </div>
 
 
@@ -783,6 +666,9 @@ document.addEventListener('alpine:init', () => {
                                 <div class="font-bold text-slate-900 text-sm mt-1">{{ $apt->student_name }}</div>
                                 <div class="text-slate-500 text-[11px]">NIM: {{ $apt->nim }} &bull; {{ $apt->department }}</div>
                                 <div class="text-slate-400 text-[10px] mt-0.5">{{ $apt->student_email }}</div>
+                                <div class="text-[10px] text-brand-700 font-semibold mt-1 bg-brand-50/80 px-2 py-0.5 rounded border border-brand-100 inline-block" title="Waktu Pengajuan Mahasiswa">
+                                    Diajukan: {{ \Carbon\Carbon::parse($apt->created_at)->translatedFormat('d M Y H:i:s') }} WIB
+                                </div>
                             </td>
 
                             <td class="py-4 px-4">
@@ -936,42 +822,18 @@ document.addEventListener('alpine:init', () => {
                         <input type="text" id="modal_reason" x-model="reason" 
                                placeholder="Contoh: Rapat Senat / Tugas Dinas / Sesi Bertamu Khusus"
                                class="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-brand-500">
-                    </div>
-
-                    <div x-show="isAvailable" class="space-y-4">
+                            <div x-show="isAvailable" class="space-y-4">
                         <div class="flex items-center justify-between">
-                            <label class="block text-xs font-bold text-slate-700 uppercase">Daftar Jam Unavailable / Jam Off</label>
-                            <button type="button" @click="unavailableRanges.push({ start: '', end: '' })" 
-                                    class="px-2.5 py-1.5 bg-brand-50 hover:bg-brand-100 text-brand-700 rounded-lg text-xs font-bold transition-all flex items-center gap-1">
-                                <i data-lucide="plus" class="w-3.5 h-3.5"></i> Tambah Jam Off
-                            </button>
+                            <label class="block text-xs font-bold text-slate-700 uppercase">Daftar Jam / Slot Available Yang Dibuka</label>
+                            <span class="text-[10px] text-slate-500 font-medium">Pilih slot jam yang aktif untuk bimbingan</span>
                         </div>
 
-
-                        <div class="space-y-3 max-h-52 overflow-y-auto p-2 bg-slate-50 border border-slate-200 rounded-xl">
-                            <template x-for="(range, index) in unavailableRanges" :key="index">
-                                <div class="flex items-end gap-2 p-2 bg-white rounded-lg border border-slate-200 shadow-2xs">
-                                    <div class="grid grid-cols-2 gap-2 flex-grow">
-                                        <div>
-                                            <label class="block text-[10px] font-bold text-slate-500 mb-0.5">Jam Mulai</label>
-                                            <input type="time" x-model="range.start" required
-                                                   class="w-full px-2 py-1.5 border border-slate-300 rounded-lg text-xs font-semibold focus:ring-1 focus:ring-brand-500">
-                                        </div>
-                                        <div>
-                                            <label class="block text-[10px] font-bold text-slate-500 mb-0.5">Jam Selesai</label>
-                                            <input type="time" x-model="range.end" required
-                                                   class="w-full px-2 py-1.5 border border-slate-300 rounded-lg text-xs font-semibold focus:ring-1 focus:ring-brand-500">
-                                        </div>
-                                    </div>
-                                    <button type="button" @click="unavailableRanges.splice(index, 1)" 
-                                            class="p-2 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-lg transition-colors" title="Hapus rentang ini">
-                                        Hapus
-                                    </button>
-                                </div>
-                            </template>
-
-                            <template x-if="unavailableRanges.length === 0">
-                                <p class="text-center text-[11px] text-slate-400 py-4">Belum ada jam off khusus yang ditambahkan. Seluruh jam default harian aktif.</p>
+                        <div class="grid grid-cols-2 gap-2 p-3 bg-slate-50 border border-slate-200 rounded-xl max-h-52 overflow-y-auto">
+                            <template x-for="slotStr in masterSlots" :key="slotStr">
+                                <label class="flex items-center gap-2 p-2.5 bg-white border border-slate-200 rounded-xl cursor-pointer hover:border-brand-500 transition-all text-xs font-semibold">
+                                    <input type="checkbox" :value="slotStr" :checked="availableSlots.includes(slotStr)" @change="toggleAvailableSlot(slotStr)" class="rounded text-brand-600 focus:ring-brand-500">
+                                    <span x-text="slotStr + ' WIB'"></span>
+                                </label>
                             </template>
                         </div>
                     </div>
@@ -998,6 +860,9 @@ document.addEventListener('alpine:init', () => {
                                                 <p class="text-[11px] text-slate-600 font-medium truncate mt-0.5">
                                                     <span class="font-bold text-slate-800" x-text="apt.purpose"></span> &bull; <span class="text-brand-600 font-semibold" x-text="apt.time_slot + ' WIB'"></span>
                                                 </p>
+                                                <p class="text-[10px] text-slate-400 font-medium mt-0.5">
+                                                    Diajukan: <span class="font-bold text-slate-600" x-text="apt.created_at"></span>
+                                                </p>
                                             </div>
 
                                             <!-- Tombol Lingkaran Huruf i Kecil yang Terlihat Jelas -->
@@ -1010,7 +875,7 @@ document.addEventListener('alpine:init', () => {
                                             </button>
                                         </div>
 
-                                        <!-- Kartu Detail Informasi Mahasiswa (Inline Expandable - Bebas dari Isu Terpotong/Clipping) -->
+                                        <!-- Kartu Detail Informasi Mahasiswa -->
                                         <div x-show="expandedAptId === apt.id" x-cloak 
                                              x-transition:enter="transition ease-out duration-150"
                                              x-transition:enter-start="opacity-0 scale-98"
@@ -1025,6 +890,7 @@ document.addEventListener('alpine:init', () => {
                                                 <div><span class="text-slate-400">Program Studi:</span> <strong class="text-white block font-semibold" x-text="apt.department"></strong></div>
                                                 <div class="col-span-2"><span class="text-slate-400">Email Mahasiswa:</span> <strong class="text-white block font-semibold" x-text="apt.student_email"></strong></div>
                                                 <div class="col-span-2"><span class="text-slate-400">Waktu Bimbingan:</span> <strong class="text-brand-300 block font-semibold" x-text="apt.time_slot + ' WIB'"></strong></div>
+                                                <div class="col-span-2"><span class="text-slate-400">Tanggal/Jam Pengajuan:</span> <strong class="text-brand-300 block font-semibold" x-text="apt.created_at"></strong></div>
                                             </div>
                                             <template x-if="apt.notes">
                                                 <div class="bg-slate-800 p-2.5 rounded-lg text-[11px] text-slate-300 italic border border-slate-700">
@@ -1035,7 +901,7 @@ document.addEventListener('alpine:init', () => {
                                     </div>
                                 </template>
                             </div>
-                        </template>
+                        </template>         </template>
 
                         <template x-if="dayAppointments.length === 0">
                             <p class="text-center text-[11px] text-slate-400 py-3 bg-slate-50 border border-dashed border-slate-200 rounded-xl">

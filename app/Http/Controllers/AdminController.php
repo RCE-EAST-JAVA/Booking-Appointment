@@ -296,26 +296,13 @@ class AdminController extends Controller
         try {
             $appointment = Appointment::findOrFail($id);
 
-            // Check if current appointment session starts in < 3 hours
-            $timeSlotParts = explode('-', $appointment->time_slot);
-            $startTimeStr = trim($timeSlotParts[0] ?? '00:00');
-            $sessionStart = Carbon::parse($appointment->appointment_date->toDateString() . ' ' . $startTimeStr);
-
-            if (Carbon::now()->diffInMinutes($sessionStart, false) < 180) {
-                $lockMessage = "Reschedule tidak dapat dilakukan karena sesi bimbingan kurang dari 3 jam lagi dari jam sekarang.";
-                if ($request->expectsJson() || $request->ajax()) {
-                    return response()->json(['success' => false, 'message' => $lockMessage], 422);
-                }
-                return back()->with('error', $lockMessage);
-            }
-
             // Auto approve new schedule directly
             $appointment->update([
                 'appointment_date' => $request->proposed_date,
                 'time_slot' => $request->proposed_time_slot,
                 'proposed_date' => $request->proposed_date,
                 'proposed_time_slot' => $request->proposed_time_slot,
-                'status' => 'approved',
+                'status' => 'rescheduled',
                 'reschedule_reason' => $request->reason,
                 'token' => Str::random(32),
             ]);
@@ -507,6 +494,10 @@ class AdminController extends Controller
 
         Schedule::create($validated);
 
+        if ($request->expectsJson() || $request->ajax() || $request->wantsJson()) {
+            return response()->json(['success' => true, 'message' => 'Jadwal & Kuota baru berhasil ditambahkan.']);
+        }
+
         return back()->with('success', 'Jadwal & Kuota baru berhasil ditambahkan.');
     }
 
@@ -521,6 +512,10 @@ class AdminController extends Controller
 
         $schedule->update($validated);
 
+        if ($request->expectsJson() || $request->ajax() || $request->wantsJson()) {
+            return response()->json(['success' => true, 'message' => 'Perubahan kuota & status jadwal berhasil disimpan.']);
+        }
+
         return back()->with('success', 'Perubahan kuota & status jadwal berhasil disimpan.');
     }
 
@@ -528,6 +523,10 @@ class AdminController extends Controller
     {
         $schedule = Schedule::findOrFail($id);
         $schedule->delete();
+
+        if (request()->expectsJson() || request()->ajax() || request()->wantsJson()) {
+            return response()->json(['success' => true, 'message' => 'Jadwal berhasil dihapus.']);
+        }
 
         return back()->with('success', 'Jadwal berhasil dihapus.');
     }
@@ -756,19 +755,21 @@ class AdminController extends Controller
             $override = $overrides->get($dateStr);
             $blocked = $blockedDates->get($dateStr);
 
-            $isAvailable = $isWeekend ? false : true;
+            $isAvailable = false;
             $reason = null;
             $unavailableSlots = [];
+            $availableSlots = [];
 
             if ($override) {
                 $isAvailable = (bool) $override->is_available;
                 $reason = $override->reason;
                 $unavailableSlots = $override->unavailable_slots ?? [];
+                $availableSlots = $override->available_slots ?? [];
             } elseif ($blocked) {
                 $isAvailable = false;
                 $reason = $blocked->reason ?: 'Hari Libur / Dosen Berhalangan';
-            } elseif ($isWeekend) {
-                $reason = 'Libur Akhir Pekan (' . ($dayOfWeek === 0 ? 'Minggu' : 'Sabtu') . ')';
+            } else {
+                $reason = $isWeekend ? 'Libur Akhir Pekan (' . ($dayOfWeek === 0 ? 'Minggu' : 'Sabtu') . ')' : 'Off / Belum Dibuka';
             }
 
             $dayApts = $monthAppointments->get($dateStr, collect([]));
@@ -785,6 +786,7 @@ class AdminController extends Controller
                 'is_available' => $isAvailable,
                 'reason' => $reason,
                 'unavailable_slots' => $unavailableSlots,
+                'available_slots' => $availableSlots,
                 'unavailable_start' => $override ? ($override->unavailable_start ? substr($override->unavailable_start, 0, 5) : null) : null,
                 'unavailable_end' => $override ? ($override->unavailable_end ? substr($override->unavailable_end, 0, 5) : null) : null,
                 'unavailable_ranges' => $override ? ($override->unavailable_ranges ?? []) : [],
@@ -801,6 +803,7 @@ class AdminController extends Controller
                         'time_slot' => $apt->time_slot,
                         'notes' => $apt->notes,
                         'status' => $apt->status,
+                        'created_at' => Carbon::parse($apt->created_at)->translatedFormat('d M Y H:i:s') . ' WIB',
                     ];
                 })->values()->toArray(),
                 'has_override' => $override !== null,
@@ -823,6 +826,7 @@ class AdminController extends Controller
             'is_available' => 'required|boolean',
             'reason' => 'nullable|string|max:255',
             'unavailable_slots' => 'nullable|array',
+            'available_slots' => 'nullable|array',
             'unavailable_start' => 'nullable|string',
             'unavailable_end' => 'nullable|string',
             'unavailable_ranges' => 'nullable|array',
@@ -861,6 +865,7 @@ class AdminController extends Controller
                 'is_available' => $validated['is_available'],
                 'reason' => $validated['reason'],
                 'unavailable_slots' => $validated['unavailable_slots'] ?? [],
+                'available_slots' => $validated['available_slots'] ?? [],
                 'unavailable_start' => $start,
                 'unavailable_end' => $end,
                 'unavailable_ranges' => $ranges,

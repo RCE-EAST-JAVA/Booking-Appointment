@@ -6,6 +6,7 @@ use Illuminate\Support\Facades\Route;
 
 // --- Student Public Portal Routes ---
 Route::get('/', [StudentController::class, 'index'])->name('student.index');
+Route::get('/available-dates', [StudentController::class, 'getAvailableDates'])->name('student.available-dates');
 Route::get('/available-slots', [StudentController::class, 'getAvailableSlots'])->name('student.available-slots');
 Route::post('/book', [StudentController::class, 'store'])->name('student.store');
 Route::get('/tracker', [StudentController::class, 'trackStatus'])->name('student.tracker');

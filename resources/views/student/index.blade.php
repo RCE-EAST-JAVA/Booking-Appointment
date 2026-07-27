@@ -9,9 +9,43 @@
          selectedSlot: '{{ old('time_slot') }}',
          selectedLecturer: '{{ old('user_id', $lecturers->first()?->id) }}',
          slots: [],
+         availableDates: [],
+         loadingDates: false,
          loadingSlots: false,
          isBlocked: false,
          blockedReason: '',
+
+         formatDateIndo(dStr) {
+             if (!dStr) return '';
+             let d = new Date(dStr + 'T00:00:00');
+             let days = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+             let months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agt', 'Sep', 'Okt', 'Nov', 'Des'];
+             return `${days[d.getDay()]}, ${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
+         },
+
+         fetchAvailableDates() {
+             this.loadingDates = true;
+             let url = `{{ route('student.available-dates', [], false) }}`;
+             if (this.selectedLecturer) {
+                 url += `?user_id=${this.selectedLecturer}`;
+             }
+             fetch(url, { headers: { 'Accept': 'application/json' } })
+                 .then(res => res.json())
+                 .then(data => {
+                     this.loadingDates = false;
+                     this.availableDates = data.dates || [];
+                     if (this.availableDates.length > 0) {
+                         if (!this.availableDates.includes(this.selectedDate)) {
+                             this.selectedDate = this.availableDates[0];
+                         }
+                     }
+                     this.fetchSlots();
+                 })
+                 .catch(err => {
+                     this.loadingDates = false;
+                     this.fetchSlots();
+                 });
+         },
 
          fetchSlots() {
              if (!this.selectedDate) return;
@@ -45,7 +79,7 @@
                  });
          }
      }"
-     x-init="fetchSlots()">
+     x-init="fetchAvailableDates()">
 
     <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         
@@ -158,7 +192,7 @@
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
                     <div>
                         <label for="user_id" class="block text-sm font-semibold text-slate-700 mb-1">Pilih Dosen Tujuan <span class="text-rose-500">*</span></label>
-                        <select name="user_id" id="user_id" required x-model="selectedLecturer" @change="fetchSlots()" class="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-brand-500 focus:border-brand-500 text-sm transition-all bg-white">
+                        <select name="user_id" id="user_id" required x-model="selectedLecturer" @change="fetchAvailableDates()" class="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-brand-500 focus:border-brand-500 text-sm transition-all bg-white">
                             @foreach($lecturers as $lecturer)
                                 <option value="{{ $lecturer->id }}">{{ $lecturer->name }}</option>
                             @endforeach
@@ -193,19 +227,46 @@
                             <h3 class="text-base font-bold text-slate-900 flex items-center gap-2">
                                 <i data-lucide="calendar" class="w-5 h-5 text-brand-600"></i> Pilih Tanggal & Waktu Bimbingan
                             </h3>
-                            <p class="text-xs text-slate-500">Kuota waktu disesuaikan dengan jam kerja aktif dosen.</p>
+                            <p class="text-xs text-slate-500">Hanya tanggal yang telah dibuka oleh dosen yang tersedia untuk dipilih.</p>
                         </div>
                     </div>
 
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        <!-- Date Input -->
+                        <!-- Restricted Date Selection -->
                         <div class="md:col-span-1">
-                            <label for="appointment_date" class="block text-xs font-semibold text-slate-600 uppercase mb-1">Pilih Tanggal</label>
-                            <input type="date" name="appointment_date" id="appointment_date" required 
-                                   min="{{ date('Y-m-d') }}"
-                                   x-model="selectedDate"
-                                   @change="fetchSlots()"
-                                   class="w-full px-4 py-3 rounded-xl border border-slate-300 focus:ring-2 focus:ring-brand-500 focus:border-brand-500 text-sm font-semibold transition-all">
+                            <label for="appointment_date" class="block text-xs font-semibold text-slate-600 uppercase mb-1">Pilih Tanggal Yang Tersedia</label>
+                            
+                            <template x-if="loadingDates">
+                                <div class="px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-500 flex items-center gap-2">
+                                    <div class="w-3.5 h-3.5 border-2 border-brand-600 border-t-transparent rounded-full animate-spin"></div>
+                                    <span>Memuat jadwal tersedia...</span>
+                                </div>
+                            </template>
+
+                            <template x-if="!loadingDates && availableDates.length > 0">
+                                <div>
+                                    <select name="appointment_date" id="appointment_date" required 
+                                            x-model="selectedDate"
+                                            @change="fetchSlots()"
+                                            class="w-full px-4 py-3 rounded-xl border border-slate-300 focus:ring-2 focus:ring-brand-500 focus:border-brand-500 text-sm font-bold text-slate-800 transition-all bg-white shadow-2xs">
+                                        <template x-for="dStr in availableDates" :key="dStr">
+                                            <option :value="dStr" x-text="formatDateIndo(dStr)"></option>
+                                        </template>
+                                    </select>
+                                    <p class="text-[11px] text-emerald-600 font-semibold mt-1 flex items-center gap-1">
+                                        <i data-lucide="check-circle" class="w-3 h-3"></i>
+                                        <span x-text="availableDates.length + ' tanggal bimbingan dibuka'"></span>
+                                    </p>
+                                </div>
+                            </template>
+
+                            <template x-if="!loadingDates && availableDates.length === 0">
+                                <div class="p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-800 text-xs font-medium">
+                                    <p class="font-bold mb-0.5 text-rose-900">Belum Ada Tanggal Dibuka</p>
+                                    <p class="text-[11px] text-rose-700">Dosen belum membuka slot bimbingan. Silakan periksa berkala.</p>
+                                    <input type="hidden" name="appointment_date" value="">
+                                </div>
+                            </template>
                         </div>
 
                         <!-- Slots Grid -->
