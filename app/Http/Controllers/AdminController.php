@@ -762,14 +762,14 @@ class AdminController extends Controller
 
             if ($override) {
                 $isAvailable = (bool) $override->is_available;
-                $reason = $override->reason;
+                $reason = ($override->reason === 'Off / Belum Dibuka') ? '' : ($override->reason ?? '');
                 $unavailableSlots = $override->unavailable_slots ?? [];
                 $availableSlots = $override->available_slots ?? [];
             } elseif ($blocked) {
                 $isAvailable = false;
                 $reason = $blocked->reason ?: 'Hari Libur / Dosen Berhalangan';
             } else {
-                $reason = $isWeekend ? 'Libur Akhir Pekan (' . ($dayOfWeek === 0 ? 'Minggu' : 'Sabtu') . ')' : 'Off / Belum Dibuka';
+                $reason = $isWeekend ? 'Libur Akhir Pekan (' . ($dayOfWeek === 0 ? 'Minggu' : 'Sabtu') . ')' : '';
             }
 
             $dayApts = $monthAppointments->get($dateStr, collect([]));

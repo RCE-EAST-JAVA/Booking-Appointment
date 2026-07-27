@@ -356,7 +356,7 @@ document.addEventListener('alpine:init', () => {
             this.formattedSelectedDate = d.toLocaleDateString('id-ID', options);
             
             this.isAvailable = dayObj.is_available;
-            this.reason = dayObj.reason || '';
+            this.reason = (dayObj.reason === 'Off / Belum Dibuka') ? '' : (dayObj.reason || '');
             this.unavailableSlots = Array.isArray(dayObj.unavailable_slots) ? [...dayObj.unavailable_slots] : [];
             this.availableSlots = Array.isArray(dayObj.available_slots) && dayObj.available_slots.length > 0
                 ? [...dayObj.available_slots]
@@ -793,29 +793,31 @@ document.addEventListener('alpine:init', () => {
                     </div>
 
                     <div>
-                        <label for="modal_reason" class="block text-xs font-bold text-slate-700 uppercase mb-1">Keterangan / Alasan Override</label>
+                        <label for="modal_reason" class="block text-xs font-bold text-slate-700 uppercase mb-1.5">Keterangan / Alasan Override</label>
                         <input type="text" id="modal_reason" x-model="reason" 
                                placeholder="Contoh: Rapat Senat / Tugas Dinas / Sesi Bertamu Khusus"
-                               class="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-brand-500">
-                    <div x-show="isAvailable" class="space-y-3">
+                               class="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-brand-500 shadow-2xs">
+                    </div>
+
+                    <div x-show="isAvailable" class="space-y-4 pt-3 mt-4 border-t border-slate-200/80">
                         <div class="flex items-center justify-between">
                             <label class="block text-xs font-bold text-slate-700 uppercase flex items-center gap-1.5">
                                 <i data-lucide="clock" class="w-4 h-4 text-brand-600"></i>
                                 <span>Daftar Jam / Slot Available Yang Dibuka</span>
                             </label>
                             <button type="button" @click="availableSlots.push('')" 
-                                    class="px-2.5 py-1.5 bg-brand-50 hover:bg-brand-100 text-brand-700 rounded-xl text-xs font-bold transition-all flex items-center gap-1">
+                                    class="px-3 py-1.5 bg-brand-50 hover:bg-brand-100 text-brand-700 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shadow-2xs">
                                 <i data-lucide="plus" class="w-3.5 h-3.5"></i> Tambah Jam / Slot
                             </button>
                         </div>
 
                         <!-- Quick Add Chips -->
-                        <div class="flex flex-wrap items-center gap-1.5 text-[11px] bg-slate-50 p-2 rounded-xl border border-slate-200">
-                            <span class="text-slate-500 font-bold uppercase text-[10px]">Tambah Cepat:</span>
+                        <div class="flex flex-wrap items-center gap-2 text-[11px] bg-slate-50/80 p-3 rounded-2xl border border-slate-200">
+                            <span class="text-slate-500 font-extrabold uppercase text-[10px] tracking-wider block w-full sm:w-auto mb-1 sm:mb-0">Tambah Cepat:</span>
                             <template x-for="pSlot in ['08:00 - 09:00', '09:00 - 10:00', '10:00 - 11:00', '11:00 - 12:00', '13:00 - 14:00', '14:00 - 15:00']" :key="pSlot">
                                 <button type="button" 
                                         @click="if (!availableSlots.includes(pSlot)) availableSlots.push(pSlot)"
-                                        class="px-2 py-0.5 rounded-lg border border-slate-200 bg-white hover:bg-brand-50 hover:border-brand-300 text-slate-700 hover:text-brand-700 font-semibold transition-all shadow-2xs">
+                                        class="px-2.5 py-1 rounded-xl border border-slate-200 bg-white hover:bg-brand-50 hover:border-brand-300 text-slate-700 hover:text-brand-700 font-semibold transition-all shadow-2xs">
                                     + <span x-text="pSlot"></span>
                                 </button>
                             </template>
@@ -906,7 +908,7 @@ document.addEventListener('alpine:init', () => {
                                     </div>
                                 </template>
                             </div>
-                        </template>         </template>
+                        </template>
 
                         <template x-if="dayAppointments.length === 0">
                             <p class="text-center text-[11px] text-slate-400 py-3 bg-slate-50 border border-dashed border-slate-200 rounded-xl">
