@@ -82,12 +82,24 @@ class StudentController extends Controller
         $customAvailableSlots = $override->available_slots ?? [];
 
         if (!empty($customAvailableSlots)) {
-            $schedules = collect($customAvailableSlots)->map(function ($slotStr) {
+            $schedules = collect($customAvailableSlots)->map(function ($item) {
+                if (is_array($item)) {
+                    return (object)[
+                        'time_slot' => $item['slot'] ?? ($item['time_slot'] ?? ''),
+                        'quota' => (int)($item['quota'] ?? 3),
+                    ];
+                }
+                if (is_object($item)) {
+                    return (object)[
+                        'time_slot' => $item->slot ?? ($item->time_slot ?? ''),
+                        'quota' => (int)($item->quota ?? 3),
+                    ];
+                }
                 return (object)[
-                    'time_slot' => $slotStr,
-                    'quota' => 3, // Default quota per custom slot
+                    'time_slot' => (string)$item,
+                    'quota' => 3,
                 ];
-            });
+            })->filter(fn($s) => !empty($s->time_slot));
         } else {
             $schedules = Schedule::where('day_of_week', $dayOfWeek)
                 ->where('is_active', true)

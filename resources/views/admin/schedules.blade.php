@@ -359,8 +359,15 @@ document.addEventListener('alpine:init', () => {
             this.reason = (dayObj.reason === 'Off / Belum Dibuka') ? '' : (dayObj.reason || '');
             this.unavailableSlots = Array.isArray(dayObj.unavailable_slots) ? [...dayObj.unavailable_slots] : [];
             this.availableSlots = Array.isArray(dayObj.available_slots) && dayObj.available_slots.length > 0
-                ? [...dayObj.available_slots]
-                : ['08:00 - 09:00', '09:00 - 10:00', '10:00 - 11:00', '11:00 - 12:00', '13:00 - 14:00', '14:00 - 15:00'];
+                ? dayObj.available_slots.map(s => typeof s === 'object' && s !== null ? { slot: s.slot || s.time_slot || '', quota: parseInt(s.quota) || 3 } : { slot: String(s), quota: 3 })
+                : [
+                    { slot: '08:00 - 09:00', quota: 3 },
+                    { slot: '09:00 - 10:00', quota: 3 },
+                    { slot: '10:00 - 11:00', quota: 3 },
+                    { slot: '11:00 - 12:00', quota: 3 },
+                    { slot: '13:00 - 14:00', quota: 3 },
+                    { slot: '14:00 - 15:00', quota: 3 }
+                  ];
             this.unavailableStart = dayObj.unavailable_start || '';
             this.unavailableEnd = dayObj.unavailable_end || '';
             this.unavailableRanges = Array.isArray(dayObj.unavailable_ranges) ? JSON.parse(JSON.stringify(dayObj.unavailable_ranges)) : [];
@@ -371,7 +378,9 @@ document.addEventListener('alpine:init', () => {
         },
 
         saveDayOverride() {
-            let filteredAvailableSlots = this.availableSlots.map(s => s.trim()).filter(s => s.length > 0);
+            let filteredAvailableSlots = this.availableSlots
+                .filter(s => s && s.slot && String(s.slot).trim().length > 0)
+                .map(s => ({ slot: String(s.slot).trim(), quota: parseInt(s.quota) || 3 }));
 
             let csrf = '{{ csrf_token() }}';
             fetch('{{ route('admin.date-override.save', [], false) }}', {
@@ -812,7 +821,7 @@ document.addEventListener('alpine:init', () => {
                             <span class="text-slate-500 font-extrabold uppercase text-[10px] tracking-wider block w-full sm:w-auto mb-1 sm:mb-0">Tambah Cepat:</span>
                             <template x-for="pSlot in ['08:00 - 09:00', '09:00 - 10:00', '10:00 - 11:00', '11:00 - 12:00', '13:00 - 14:00', '14:00 - 15:00']" :key="pSlot">
                                 <button type="button" 
-                                        @click="if (!availableSlots.includes(pSlot)) availableSlots.push(pSlot)"
+                                        @click="if (!availableSlots.some(s => s.slot === pSlot)) availableSlots.push({ slot: pSlot, quota: 3 })"
                                         class="px-2.5 py-1 rounded-xl border border-slate-200 bg-white hover:bg-brand-50 hover:border-brand-300 text-slate-700 hover:text-brand-700 font-semibold transition-all shadow-2xs">
                                     + <span x-text="pSlot"></span>
                                 </button>
@@ -820,19 +829,36 @@ document.addEventListener('alpine:init', () => {
                         </div>
 
                         <!-- List of Editable Available Slots -->
-                        <div class="space-y-2 max-h-52 overflow-y-auto p-2 bg-slate-50 border border-slate-200 rounded-xl">
-                            <template x-for="(slot, idx) in availableSlots" :key="idx">
+                        <div class="space-y-2 max-h-60 overflow-y-auto p-2 bg-slate-50 border border-slate-200 rounded-xl">
+                            <template x-for="(item, idx) in availableSlots" :key="idx">
                                 <div class="flex items-center gap-2 p-2 bg-white rounded-xl border border-slate-200 shadow-2xs">
                                     <span class="text-xs font-extrabold text-slate-400 w-5 text-center" x-text="idx + 1 + '.'"></span>
-                                    <input type="text" x-model="availableSlots[idx]" 
-                                           placeholder="Contoh: 08:00 - 09:00" 
-                                           class="w-full px-3 py-1.5 border border-slate-300 rounded-xl text-xs font-bold text-brand-700 focus:ring-2 focus:ring-brand-500">
-                                    <button type="button" @click="availableSlots.splice(idx, 1)" 
-                                            class="px-2.5 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-xl text-xs font-bold transition-colors flex-shrink-0 flex items-center gap-1.5" 
-                                            title="Hapus slot ini">
-                                        <svg class="w-3.5 h-3.5 text-rose-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                                        <span>Hapus</span>
-                                    </button>
+                                    
+                                    <!-- Time Slot Input -->
+                                    <div class="flex-grow">
+                                        <label class="block text-[9px] font-bold text-slate-400 uppercase mb-0.5">Jam / Slot Sesi</label>
+                                        <input type="text" x-model="item.slot" 
+                                               placeholder="Contoh: 08:00 - 09:00" 
+                                               class="w-full px-3 py-1.5 border border-slate-300 rounded-xl text-xs font-bold text-brand-700 focus:ring-2 focus:ring-brand-500">
+                                    </div>
+
+                                    <!-- Quota Mhs Input -->
+                                    <div class="w-24 flex-shrink-0">
+                                        <label class="block text-[9px] font-bold text-slate-400 uppercase mb-0.5">Kuota Mhs</label>
+                                        <input type="number" min="1" max="50" x-model.number="item.quota" 
+                                               class="w-full px-2.5 py-1.5 border border-slate-300 rounded-xl text-xs font-extrabold text-slate-800 text-center focus:ring-2 focus:ring-brand-500" 
+                                               title="Jumlah kuota mahasiswa untuk slot jam ini">
+                                    </div>
+
+                                    <!-- Hapus Button -->
+                                    <div class="flex-shrink-0 self-end">
+                                        <button type="button" @click="availableSlots.splice(idx, 1)" 
+                                                class="px-2.5 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-xl text-xs font-bold transition-colors flex items-center gap-1.5" 
+                                                title="Hapus slot ini">
+                                            <svg class="w-3.5 h-3.5 text-rose-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                                            <span>Hapus</span>
+                                        </button>
+                                    </div>
                                 </div>
                             </template>
 
@@ -841,10 +867,10 @@ document.addEventListener('alpine:init', () => {
                             </template>
 
                             <!-- Tombol Tambah di Bawah Item Terakhir -->
-                            <button type="button" @click="availableSlots.push('')" 
+                            <button type="button" @click="availableSlots.push({ slot: '', quota: 3 })" 
                                     class="w-full py-2.5 bg-white hover:bg-brand-50 border-2 border-dashed border-brand-300 hover:border-brand-500 text-brand-700 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-2xs mt-2">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
-                                <span>+ Tambah Sesi / Slot Jam</span>
+                                <span>Tambah Sesi / Slot Jam</span>
                             </button>
                         </div>
                     </div>
