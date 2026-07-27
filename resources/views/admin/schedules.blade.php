@@ -360,7 +360,7 @@ document.addEventListener('alpine:init', () => {
             this.unavailableSlots = Array.isArray(dayObj.unavailable_slots) ? [...dayObj.unavailable_slots] : [];
             this.availableSlots = Array.isArray(dayObj.available_slots) && dayObj.available_slots.length > 0
                 ? [...dayObj.available_slots]
-                : (this.masterSlots && this.masterSlots.length > 0 ? [...this.masterSlots] : ['08:00 - 09:00', '09:00 - 10:00', '10:00 - 11:00', '11:00 - 12:00', '13:00 - 14:00', '14:00 - 15:00']);
+                : ['08:00 - 09:00', '09:00 - 10:00', '10:00 - 11:00', '11:00 - 12:00', '13:00 - 14:00', '14:00 - 15:00'];
             this.unavailableStart = dayObj.unavailable_start || '';
             this.unavailableEnd = dayObj.unavailable_end || '';
             this.unavailableRanges = Array.isArray(dayObj.unavailable_ranges) ? JSON.parse(JSON.stringify(dayObj.unavailable_ranges)) : [];
@@ -370,33 +370,8 @@ document.addEventListener('alpine:init', () => {
             this.modalOpen = true;
         },
 
-        toggleAvailableSlot(slotStr) {
-            let idx = this.availableSlots.indexOf(slotStr);
-            if (idx > -1) {
-                this.availableSlots.splice(idx, 1);
-            } else {
-                this.availableSlots.push(slotStr);
-            }
-        },
-
         saveDayOverride() {
-            if (this.unavailableStart && this.unavailableEnd && this.unavailableStart >= this.unavailableEnd) {
-                alert('Jam mulai tidak boleh lebih lambat atau sama dengan jam selesai!');
-                return;
-            }
-
-            for (let i = 0; i < this.unavailableRanges.length; i++) {
-                let r = this.unavailableRanges[i];
-                if (r.start && r.end) {
-                    if (r.start >= r.end) {
-                        alert(`Jam mulai (${r.start}) tidak boleh lebih lambat atau sama dengan jam selesai (${r.end}) pada baris ke-${i + 1}!`);
-                        return;
-                    }
-                } else {
-                    alert(`Harap isi lengkap jam mulai dan jam selesai pada baris ke-${i + 1}!`);
-                    return;
-                }
-            }
+            let filteredAvailableSlots = this.availableSlots.map(s => s.trim()).filter(s => s.length > 0);
 
             let csrf = '{{ csrf_token() }}';
             fetch('{{ route('admin.date-override.save', [], false) }}', {
@@ -411,7 +386,7 @@ document.addEventListener('alpine:init', () => {
                     is_available: this.isAvailable ? 1 : 0,
                     reason: this.reason,
                     unavailable_slots: this.unavailableSlots,
-                    available_slots: this.availableSlots,
+                    available_slots: filteredAvailableSlots,
                     unavailable_start: this.unavailableStart || null,
                     unavailable_end: this.unavailableEnd || null,
                     unavailable_ranges: this.unavailableRanges
@@ -822,18 +797,48 @@ document.addEventListener('alpine:init', () => {
                         <input type="text" id="modal_reason" x-model="reason" 
                                placeholder="Contoh: Rapat Senat / Tugas Dinas / Sesi Bertamu Khusus"
                                class="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-brand-500">
-                            <div x-show="isAvailable" class="space-y-4">
+                    <div x-show="isAvailable" class="space-y-3">
                         <div class="flex items-center justify-between">
-                            <label class="block text-xs font-bold text-slate-700 uppercase">Daftar Jam / Slot Available Yang Dibuka</label>
-                            <span class="text-[10px] text-slate-500 font-medium">Pilih slot jam yang aktif untuk bimbingan</span>
+                            <label class="block text-xs font-bold text-slate-700 uppercase flex items-center gap-1.5">
+                                <i data-lucide="clock" class="w-4 h-4 text-brand-600"></i>
+                                <span>Daftar Jam / Slot Available Yang Dibuka</span>
+                            </label>
+                            <button type="button" @click="availableSlots.push('')" 
+                                    class="px-2.5 py-1.5 bg-brand-50 hover:bg-brand-100 text-brand-700 rounded-xl text-xs font-bold transition-all flex items-center gap-1">
+                                <i data-lucide="plus" class="w-3.5 h-3.5"></i> Tambah Jam / Slot
+                            </button>
                         </div>
 
-                        <div class="grid grid-cols-2 gap-2 p-3 bg-slate-50 border border-slate-200 rounded-xl max-h-52 overflow-y-auto">
-                            <template x-for="slotStr in masterSlots" :key="slotStr">
-                                <label class="flex items-center gap-2 p-2.5 bg-white border border-slate-200 rounded-xl cursor-pointer hover:border-brand-500 transition-all text-xs font-semibold">
-                                    <input type="checkbox" :value="slotStr" :checked="availableSlots.includes(slotStr)" @change="toggleAvailableSlot(slotStr)" class="rounded text-brand-600 focus:ring-brand-500">
-                                    <span x-text="slotStr + ' WIB'"></span>
-                                </label>
+                        <!-- Quick Add Chips -->
+                        <div class="flex flex-wrap items-center gap-1.5 text-[11px] bg-slate-50 p-2 rounded-xl border border-slate-200">
+                            <span class="text-slate-500 font-bold uppercase text-[10px]">Tambah Cepat:</span>
+                            <template x-for="pSlot in ['08:00 - 09:00', '09:00 - 10:00', '10:00 - 11:00', '11:00 - 12:00', '13:00 - 14:00', '14:00 - 15:00']" :key="pSlot">
+                                <button type="button" 
+                                        @click="if (!availableSlots.includes(pSlot)) availableSlots.push(pSlot)"
+                                        class="px-2 py-0.5 rounded-lg border border-slate-200 bg-white hover:bg-brand-50 hover:border-brand-300 text-slate-700 hover:text-brand-700 font-semibold transition-all shadow-2xs">
+                                    + <span x-text="pSlot"></span>
+                                </button>
+                            </template>
+                        </div>
+
+                        <!-- List of Editable Available Slots -->
+                        <div class="space-y-2 max-h-52 overflow-y-auto p-2 bg-slate-50 border border-slate-200 rounded-xl">
+                            <template x-for="(slot, idx) in availableSlots" :key="idx">
+                                <div class="flex items-center gap-2 p-2 bg-white rounded-xl border border-slate-200 shadow-2xs">
+                                    <span class="text-xs font-extrabold text-slate-400 w-5 text-center" x-text="idx + 1 + '.'"></span>
+                                    <input type="text" x-model="availableSlots[idx]" 
+                                           placeholder="Contoh: 08:00 - 09:00" 
+                                           class="w-full px-3 py-1.5 border border-slate-300 rounded-xl text-xs font-bold text-brand-700 focus:ring-2 focus:ring-brand-500">
+                                    <button type="button" @click="availableSlots.splice(idx, 1)" 
+                                            class="px-2.5 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-xl text-xs font-bold transition-colors flex-shrink-0 flex items-center gap-1" 
+                                            title="Hapus slot ini">
+                                        <i data-lucide="trash-2" class="w-3.5 h-3.5"></i> Hapus
+                                    </button>
+                                </div>
+                            </template>
+
+                            <template x-if="availableSlots.length === 0">
+                                <p class="text-center text-[11px] text-slate-400 py-4">Belum ada slot jam yang dibuka. Klik "+ Tambah Jam / Slot" atau pilih opsi Tambah Cepat di atas.</p>
                             </template>
                         </div>
                     </div>
