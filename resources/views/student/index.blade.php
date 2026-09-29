@@ -121,7 +121,7 @@
                         </div>
                         <div class="flex items-center gap-3">
                             <a href="{{ route('student.tracker', ['search' => session('success_booking')['code']]) }}" class="px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white font-semibold text-sm rounded-lg shadow-md transition-all flex items-center gap-2">
-                                <i data-lucide="search" class="w-4 h-4"></i> Cek Status Booking
+                                <i data-lucide="search" class="w-4 h-4"></i> Cek Status
                             </a>
                         </div>
                     </div>

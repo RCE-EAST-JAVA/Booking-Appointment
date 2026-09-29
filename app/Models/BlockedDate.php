@@ -17,8 +17,13 @@ class BlockedDate extends Model
     ];
 
     protected $casts = [
-        'date' => 'date',
+        'date' => 'date:Y-m-d',
     ];
+
+    public function setDateAttribute($value): void
+    {
+        $this->attributes['date'] = $value ? \Carbon\Carbon::parse($value)->format('Y-m-d') : null;
+    }
 
     public function user(): BelongsTo
     {

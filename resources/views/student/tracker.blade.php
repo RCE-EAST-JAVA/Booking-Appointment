@@ -24,7 +24,7 @@
                            class="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-300 focus:ring-2 focus:ring-brand-500 focus:border-brand-500 text-sm font-semibold transition-all">
                 </div>
                 <button type="submit" class="px-6 py-3 bg-brand-600 hover:bg-brand-700 text-white font-bold text-sm rounded-xl shadow-md transition-all flex items-center justify-center gap-2">
-                    Cari Status
+                    <i data-lucide="search" class="w-4 h-4"></i> Cari
                 </button>
             </form>
         </div>
@@ -123,7 +123,7 @@
                                     </div>
                                     <a href="{{ route('student.reschedule.show', ['token' => $apt->token]) }}" 
                                        class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-lg shadow-sm transition-all flex items-center gap-1.5">
-                                        Respon Usulan Jadwal <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
+                                        Respon Jadwal <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
                                     </a>
                                 </div>
                             </div>

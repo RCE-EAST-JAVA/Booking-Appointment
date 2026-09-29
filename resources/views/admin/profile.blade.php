@@ -44,7 +44,7 @@
 
             <div class="pt-2 flex justify-end">
                 <button type="submit" class="px-5 py-2.5 bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold rounded-xl shadow-xs transition-all flex items-center gap-2">
-                    <i data-lucide="save" class="w-4 h-4"></i> Simpan Perubahan Profil
+                    <i data-lucide="save" class="w-4 h-4"></i> Simpan
                 </button>
             </div>
         </form>

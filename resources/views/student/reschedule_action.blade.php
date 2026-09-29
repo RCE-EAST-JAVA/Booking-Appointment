@@ -69,13 +69,13 @@
                     
                     <button type="submit" name="action" value="accept" 
                             class="flex-1 py-3.5 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm rounded-xl shadow-md transition-all flex items-center justify-center gap-2">
-                        <i data-lucide="check" class="w-4 h-4"></i> Terima Jadwal Baru
+                        <i data-lucide="check" class="w-4 h-4"></i> Terima
                     </button>
 
                     <button type="submit" name="action" value="cancel" 
                             onclick="return confirm('Apakah Anda yakin ingin membatalkan pengajuan bimbingan ini?');"
                             class="flex-1 py-3.5 px-4 bg-rose-600 hover:bg-rose-700 text-white font-bold text-sm rounded-xl shadow-md transition-all flex items-center justify-center gap-2">
-                        <i data-lucide="x" class="w-4 h-4"></i> Batalkan Pengajuan
+                        <i data-lucide="x" class="w-4 h-4"></i> Batalkan
                     </button>
                 </form>
             </div>

@@ -359,14 +359,20 @@ document.addEventListener('alpine:init', () => {
             this.reason = (dayObj.reason === 'Off / Belum Dibuka') ? '' : (dayObj.reason || '');
             this.unavailableSlots = Array.isArray(dayObj.unavailable_slots) ? [...dayObj.unavailable_slots] : [];
             this.availableSlots = Array.isArray(dayObj.available_slots) && dayObj.available_slots.length > 0
-                ? dayObj.available_slots.map(s => typeof s === 'object' && s !== null ? { slot: s.slot || s.time_slot || '', quota: parseInt(s.quota) || 3 } : { slot: String(s), quota: 3 })
+                ? dayObj.available_slots.map(s => typeof s === 'object' && s !== null ? { slot: s.slot || s.time_slot || '', quota: parseInt(s.quota) || 1 } : { slot: String(s), quota: 1 })
                 : [
-                    { slot: '08:00 - 09:00', quota: 3 },
-                    { slot: '09:00 - 10:00', quota: 3 },
-                    { slot: '10:00 - 11:00', quota: 3 },
-                    { slot: '11:00 - 12:00', quota: 3 },
-                    { slot: '13:00 - 14:00', quota: 3 },
-                    { slot: '14:00 - 15:00', quota: 3 }
+                    { slot: '08:00 - 08:30', quota: 1 },
+                    { slot: '08:30 - 09:00', quota: 1 },
+                    { slot: '09:00 - 09:30', quota: 1 },
+                    { slot: '09:30 - 10:00', quota: 1 },
+                    { slot: '10:00 - 10:30', quota: 1 },
+                    { slot: '10:30 - 11:00', quota: 1 },
+                    { slot: '11:00 - 11:30', quota: 1 },
+                    { slot: '11:30 - 12:00', quota: 1 },
+                    { slot: '13:00 - 13:30', quota: 1 },
+                    { slot: '13:30 - 14:00', quota: 1 },
+                    { slot: '14:00 - 14:30', quota: 1 },
+                    { slot: '14:30 - 15:00', quota: 1 }
                   ];
             this.unavailableStart = dayObj.unavailable_start || '';
             this.unavailableEnd = dayObj.unavailable_end || '';
@@ -377,60 +383,109 @@ document.addEventListener('alpine:init', () => {
             this.modalOpen = true;
         },
 
-        saveDayOverride() {
+        async saveDayOverride() {
             let filteredAvailableSlots = this.availableSlots
                 .filter(s => s && s.slot && String(s.slot).trim().length > 0)
-                .map(s => ({ slot: String(s.slot).trim(), quota: parseInt(s.quota) || 3 }));
+                .map(s => ({ slot: String(s.slot).trim(), quota: parseInt(s.quota) || 1 }));
 
             let csrf = '{{ csrf_token() }}';
-            fetch('{{ route('admin.date-override.save', [], false) }}', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': csrf,
-                    'Accept': 'application/json'
-                },
-                body: JSON.stringify({
-                    date: this.selectedDate,
-                    is_available: this.isAvailable ? 1 : 0,
-                    reason: this.reason,
-                    unavailable_slots: this.unavailableSlots,
-                    available_slots: filteredAvailableSlots,
-                    unavailable_start: this.unavailableStart || null,
-                    unavailable_end: this.unavailableEnd || null,
-                    unavailable_ranges: this.unavailableRanges
-                })
-            })
-            .then(res => res.json())
-            .then(data => {
-                if (data.success === false) {
-                    alert(data.message);
+            try {
+                let res = await fetch('{{ route('admin.date-override.save', [], false) }}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': csrf,
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    body: JSON.stringify({
+                        date: this.selectedDate,
+                        is_available: this.isAvailable ? 1 : 0,
+                        reason: this.reason,
+                        unavailable_slots: this.unavailableSlots,
+                        available_slots: filteredAvailableSlots,
+                        unavailable_start: this.unavailableStart || null,
+                        unavailable_end: this.unavailableEnd || null,
+                        unavailable_ranges: this.unavailableRanges
+                    })
+                });
+
+                let data = await res.json().catch(() => ({}));
+
+                if (!res.ok || data.success === false) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Gagal Menyimpan',
+                        text: data.message || 'Terjadi kesalahan saat menyimpan pengaturan tanggal.'
+                    });
                     return;
                 }
+
                 this.modalOpen = false;
+                if (typeof Toast !== 'undefined') {
+                    Toast.fire({ icon: 'success', title: data.message || 'Pengaturan tanggal berhasil disimpan.' });
+                }
                 this.fetchMonth(this.currentMonth);
-            });
+            } catch (e) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Terjadi Kesalahan',
+                    text: 'Gagal menghubungi server: ' + e.message
+                });
+            }
         },
 
-        resetDayOverride() {
-            if (!confirm('Kembalikan pengaturan tanggal ini ke status default?')) return;
-            let csrf = '{{ csrf_token() }}';
-            fetch('{{ route('admin.date-override.delete', [], false) }}', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': csrf,
-                    'Accept': 'application/json'
-                },
-                body: JSON.stringify({
-                    date: this.selectedDate
-                })
-            })
-            .then(res => res.json())
-            .then(data => {
-                this.modalOpen = false;
-                this.fetchMonth(this.currentMonth);
+        async resetDayOverride() {
+            let confirmResult = await Swal.fire({
+                title: 'Kembalikan ke Default?',
+                text: 'Pengaturan khusus pada tanggal ini akan dihapus dan kembali ke status jadwal default.',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#e11d48',
+                cancelButtonColor: '#64748b',
+                confirmButtonText: 'Ya, Reset!',
+                cancelButtonText: 'Batal'
             });
+
+            if (!confirmResult.isConfirmed) return;
+
+            let csrf = '{{ csrf_token() }}';
+            try {
+                let res = await fetch('{{ route('admin.date-override.delete', [], false) }}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': csrf,
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    body: JSON.stringify({
+                        date: this.selectedDate
+                    })
+                });
+
+                let data = await res.json().catch(() => ({}));
+                if (!res.ok || data.success === false) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Gagal Reset',
+                        text: data.message || 'Gagal mengembalikan pengaturan tanggal.'
+                    });
+                    return;
+                }
+
+                this.modalOpen = false;
+                if (typeof Toast !== 'undefined') {
+                    Toast.fire({ icon: 'success', title: data.message || 'Pengaturan tanggal dikembalikan ke default.' });
+                }
+                this.fetchMonth(this.currentMonth);
+            } catch (e) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Terjadi Kesalahan',
+                    text: 'Gagal menghubungi server: ' + e.message
+                });
+            }
         }
     }));
 });
@@ -444,17 +499,17 @@ document.addEventListener('alpine:init', () => {
             <button @click="activeTab = 'setting'"
                     :class="activeTab === 'setting' ? 'bg-brand-600 text-white shadow-md font-bold' : 'bg-slate-50 text-slate-600 hover:bg-slate-100 font-semibold'"
                     class="px-4 py-2.5 rounded-xl text-xs flex items-center gap-2 transition-all">
-                <i data-lucide="settings" class="w-4 h-4"></i> Setting Kalender & Slot Jam
+                <i data-lucide="settings" class="w-4 h-4"></i> Kalender & Slot
             </button>
             <button @click="activeTab = 'daftar_tamu'"
                     :class="activeTab === 'daftar_tamu' ? 'bg-brand-600 text-white shadow-md font-bold' : 'bg-slate-50 text-slate-600 hover:bg-slate-100 font-semibold'"
                     class="px-4 py-2.5 rounded-xl text-xs flex items-center gap-2 transition-all">
-                <i data-lucide="users" class="w-4 h-4"></i> Daftar Tamu Terdaftar
+                <i data-lucide="users" class="w-4 h-4"></i> Daftar Tamu
             </button>
             <button @click="activeTab = 'pengumuman'"
                     :class="activeTab === 'pengumuman' ? 'bg-brand-600 text-white shadow-md font-bold' : 'bg-slate-50 text-slate-600 hover:bg-slate-100 font-semibold'"
                     class="px-4 py-2.5 rounded-xl text-xs flex items-center gap-2 transition-all">
-                <i data-lucide="megaphone" class="w-4 h-4"></i> Pengumuman Portal Publik
+                <i data-lucide="megaphone" class="w-4 h-4"></i> Pengumuman
             </button>
         </div>
 
@@ -462,7 +517,7 @@ document.addEventListener('alpine:init', () => {
             <button @click="syncHolidays()" :disabled="syncingHolidays"
                     class="px-3.5 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold shadow-2xs transition-all flex items-center gap-1.5 disabled:opacity-50">
                 <i data-lucide="refresh-cw" class="w-3.5 h-3.5" :class="syncingHolidays ? 'animate-spin' : ''"></i>
-                <span x-text="syncingHolidays ? 'Menyingkronkan...' : '🇮🇩 Sync Tanggal Merah (API)'"></span>
+                <span x-text="syncingHolidays ? 'Menyinkronkan...' : 'Sync Tanggal Merah'"></span>
             </button>
         </template>
     </div>
@@ -624,7 +679,7 @@ document.addEventListener('alpine:init', () => {
                     class="px-3.5 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold transition-all shadow-2xs flex items-center gap-1.5"
                     title="Refresh Data Tabel">
                 <i data-lucide="refresh-cw" class="w-4 h-4 text-brand-600" :class="isRefreshing ? 'animate-spin' : ''"></i>
-                <span class="hidden sm:inline">Refresh Data</span>
+                <span class="hidden sm:inline">Refresh</span>
             </button>
         </div>
 
@@ -760,7 +815,7 @@ document.addEventListener('alpine:init', () => {
 
                 <div class="pt-2">
                     <button type="submit" class="px-6 py-2.5 bg-brand-600 hover:bg-brand-700 text-white font-bold text-xs rounded-xl shadow-xs transition-all flex items-center gap-2">
-                        <i data-lucide="save" class="w-4 h-4"></i> Simpan Pengumuman
+                        <i data-lucide="save" class="w-4 h-4"></i> Simpan
                     </button>
                 </div>
             </form>
@@ -817,11 +872,11 @@ document.addEventListener('alpine:init', () => {
                         </div>
 
                         <!-- Quick Add Chips -->
-                        <div class="flex flex-wrap items-center gap-2 text-[11px] bg-slate-50/80 p-3 rounded-2xl border border-slate-200">
+                        <div class="flex flex-wrap items-center gap-1.5 text-[11px] bg-slate-50/80 p-3 rounded-2xl border border-slate-200">
                             <span class="text-slate-500 font-extrabold uppercase text-[10px] tracking-wider block w-full sm:w-auto mb-1 sm:mb-0">Tambah Cepat:</span>
-                            <template x-for="pSlot in ['08:00 - 09:00', '09:00 - 10:00', '10:00 - 11:00', '11:00 - 12:00', '13:00 - 14:00', '14:00 - 15:00']" :key="pSlot">
+                            <template x-for="pSlot in ['08:00 - 08:30', '08:30 - 09:00', '09:00 - 09:30', '09:30 - 10:00', '10:00 - 10:30', '10:30 - 11:00', '11:00 - 11:30', '11:30 - 12:00', '13:00 - 13:30', '13:30 - 14:00', '14:00 - 14:30', '14:30 - 15:00', '15:00 - 15:30', '15:30 - 16:00']" :key="pSlot">
                                 <button type="button" 
-                                        @click="if (!availableSlots.some(s => s.slot === pSlot)) availableSlots.push({ slot: pSlot, quota: 3 })"
+                                        @click="if (!availableSlots.some(s => s.slot === pSlot)) availableSlots.push({ slot: pSlot, quota: 1 })"
                                         class="px-2.5 py-1 rounded-xl border border-slate-200 bg-white hover:bg-brand-50 hover:border-brand-300 text-slate-700 hover:text-brand-700 font-semibold transition-all shadow-2xs">
                                     + <span x-text="pSlot"></span>
                                 </button>
@@ -838,7 +893,7 @@ document.addEventListener('alpine:init', () => {
                                     <div class="flex-grow">
                                         <label class="block text-[9px] font-bold text-slate-400 uppercase mb-0.5">Jam / Slot Sesi</label>
                                         <input type="text" x-model="item.slot" 
-                                               placeholder="Contoh: 08:00 - 09:00" 
+                                               placeholder="Contoh: 08:00 - 08:30" 
                                                class="w-full px-3 py-1.5 border border-slate-300 rounded-xl text-xs font-bold text-brand-700 focus:ring-2 focus:ring-brand-500">
                                     </div>
 
@@ -867,10 +922,10 @@ document.addEventListener('alpine:init', () => {
                             </template>
 
                             <!-- Tombol Tambah di Bawah Item Terakhir -->
-                            <button type="button" @click="availableSlots.push({ slot: '', quota: 3 })" 
+                            <button type="button" @click="availableSlots.push({ slot: '', quota: 1 })" 
                                     class="w-full py-2.5 bg-white hover:bg-brand-50 border-2 border-dashed border-brand-300 hover:border-brand-500 text-brand-700 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-2xs mt-2">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
-                                <span>Tambah Sesi / Slot Jam</span>
+                                <span>Tambah Slot</span>
                             </button>
                         </div>
                     </div>
@@ -952,7 +1007,7 @@ document.addEventListener('alpine:init', () => {
                 <div class="p-6 border-t border-slate-100 bg-slate-50/50 flex items-center justify-between gap-3 flex-shrink-0">
                     <template x-if="hasOverride">
                         <button type="button" @click="resetDayOverride()" class="px-4 py-2 bg-rose-50 text-rose-700 hover:bg-rose-100 rounded-xl text-xs font-bold transition-all">
-                            Reset Ke Default
+                            Reset Default
                         </button>
                     </template>
                     <template x-if="!hasOverride">
@@ -964,8 +1019,8 @@ document.addEventListener('alpine:init', () => {
                             Batal
                         </button>
                         <button type="button" @click="saveDayOverride()" class="px-5 py-2 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-xs font-bold shadow-xs transition-all flex items-center gap-1.5">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" /></svg>
-                            <span>Simpan Tanggal</span>
+                            <i data-lucide="save" class="w-4 h-4"></i>
+                            <span>Simpan</span>
                         </button>
                     </div>
                 </div>
@@ -986,7 +1041,7 @@ document.addEventListener('alpine:init', () => {
                     <textarea x-model="rejectReason" required rows="3" placeholder="Alasan penolakan..." class="w-full p-3 border border-slate-300 rounded-xl text-xs font-medium focus:ring-2 focus:ring-rose-500"></textarea>
                     <div class="flex justify-end gap-2">
                         <button type="button" @click="rejectModalOpen = false" class="px-4 py-2 border border-slate-300 rounded-xl text-xs font-bold hover:bg-slate-100">Batal</button>
-                        <button type="submit" class="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold shadow-xs">Tolak Janji</button>
+                        <button type="submit" class="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold shadow-xs">Tolak</button>
                     </div>
                 </form>
             </div>
@@ -1038,7 +1093,10 @@ document.addEventListener('alpine:init', () => {
 
                     <div class="flex justify-end gap-2 pt-2">
                         <button type="button" @click="rescheduleModalOpen = false" class="px-4 py-2 border border-slate-300 hover:bg-slate-50 rounded-xl text-xs font-bold text-slate-600">Batal</button>
-                        <button type="button" @click="submitReschedule()" :disabled="actionLoadingId === selectedId || (isBlocked || !proposedSlot)" class="px-4 py-2 bg-brand-600 hover:bg-brand-700 disabled:opacity-50 text-white rounded-xl text-xs font-bold">Simpan Perubahan Jadwal</button>
+                        <button type="button" @click="submitReschedule()" :disabled="actionLoadingId === selectedId || (isBlocked || !proposedSlot)" class="px-4 py-2 bg-brand-600 hover:bg-brand-700 disabled:opacity-50 text-white rounded-xl text-xs font-bold flex items-center gap-1.5">
+                            <i data-lucide="save" class="w-4 h-4"></i>
+                            <span>Simpan</span>
+                        </button>
                     </div>
                 </div>
             </div>

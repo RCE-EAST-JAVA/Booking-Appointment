@@ -92,7 +92,7 @@
                 </div>
 
                 <button type="submit" class="w-full py-3.5 bg-gradient-to-r from-brand-600 to-indigo-600 hover:from-brand-700 hover:to-indigo-700 text-white font-bold text-sm rounded-xl shadow-lg shadow-brand-600/30 transition-all flex items-center justify-center gap-2">
-                    Masuk Ke Dashboard <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                    Masuk <i data-lucide="arrow-right" class="w-4 h-4"></i>
                 </button>
             </form>
         </div>

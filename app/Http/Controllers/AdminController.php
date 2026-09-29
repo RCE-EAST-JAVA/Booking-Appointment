@@ -854,15 +854,16 @@ class AdminController extends Controller
             }
         }
 
+        $dateFormatted = \Carbon\Carbon::parse($validated['date'])->format('Y-m-d');
         $userId = Auth::id();
 
         DateOverride::updateOrCreate(
             [
                 'user_id' => $userId,
-                'date' => $validated['date'],
+                'date' => $dateFormatted,
             ],
             [
-                'is_available' => $validated['is_available'],
+                'is_available' => (bool)$validated['is_available'],
                 'reason' => $validated['reason'],
                 'unavailable_slots' => $validated['unavailable_slots'] ?? [],
                 'available_slots' => $validated['available_slots'] ?? [],
@@ -872,7 +873,7 @@ class AdminController extends Controller
             ]
         );
 
-        if ($request->wantsJson()) {
+        if ($request->wantsJson() || $request->ajax() || $request->expectsJson()) {
             return response()->json(['success' => true, 'message' => 'Pengaturan tanggal berhasil disimpan.']);
         }
 
@@ -885,11 +886,12 @@ class AdminController extends Controller
             'date' => 'required|date',
         ]);
 
+        $dateFormatted = \Carbon\Carbon::parse($validated['date'])->format('Y-m-d');
         $userId = Auth::id();
-        DateOverride::where('user_id', $userId)->where('date', $validated['date'])->delete();
-        BlockedDate::where('user_id', $userId)->where('date', $validated['date'])->delete();
+        DateOverride::where('user_id', $userId)->whereDate('date', $dateFormatted)->delete();
+        BlockedDate::where('user_id', $userId)->whereDate('date', $dateFormatted)->delete();
 
-        if ($request->wantsJson()) {
+        if ($request->wantsJson() || $request->ajax() || $request->expectsJson()) {
             return response()->json(['success' => true, 'message' => 'Pengaturan tanggal dikembalikan ke default.']);
         }
 

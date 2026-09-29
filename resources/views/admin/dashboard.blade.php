@@ -294,19 +294,19 @@
                     class="px-3 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold transition-all shadow-2xs flex items-center gap-1.5"
                     title="Refresh Data Tabel">
                 <i data-lucide="refresh-cw" class="w-4 h-4 text-brand-600" :class="isRefreshing ? 'animate-spin' : ''"></i>
-                <span class="hidden sm:inline">Refresh Data</span>
+                <span class="hidden sm:inline">Refresh</span>
             </button>
 
             <div class="flex items-center gap-1 bg-slate-100 p-1 rounded-xl">
                 <button @click="activeTab = 'table'" 
                         :class="activeTab === 'table' ? 'bg-white text-slate-900 shadow-xs font-bold' : 'text-slate-500 hover:text-slate-900 font-semibold'" 
                         class="px-3 py-1.5 rounded-lg text-xs flex items-center gap-1.5 transition-all">
-                    <i data-lucide="list" class="w-4 h-4"></i> List View
+                    <i data-lucide="list" class="w-4 h-4"></i> Tabel
                 </button>
                 <button @click="activeTab = 'calendar'" 
                         :class="activeTab === 'calendar' ? 'bg-white text-slate-900 shadow-xs font-bold' : 'text-slate-500 hover:text-slate-900 font-semibold'" 
                         class="px-3 py-1.5 rounded-lg text-xs flex items-center gap-1.5 transition-all">
-                    <i data-lucide="calendar" class="w-4 h-4"></i> Calendar View
+                    <i data-lucide="calendar" class="w-4 h-4"></i> Kalender
                 </button>
             </div>
         </div>
@@ -499,7 +499,7 @@
 
                     <div class="flex items-center justify-end gap-2 pt-2">
                         <button type="button" @click="rejectModalOpen = false" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl">Batal</button>
-                        <button type="submit" class="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-xl shadow-md">Kirim Penolakan</button>
+                        <button type="submit" class="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-xl shadow-md">Tolak</button>
                     </div>
                 </form>
             </div>
@@ -552,7 +552,10 @@
 
                     <div class="flex items-center justify-end gap-2 pt-2">
                         <button type="button" @click="rescheduleModalOpen = false" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl">Batal</button>
-                        <button type="submit" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl shadow-md">Simpan Perubahan Jadwal</button>
+                        <button type="submit" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl shadow-md flex items-center gap-1.5">
+                            <i data-lucide="save" class="w-4 h-4"></i>
+                            <span>Simpan</span>
+                        </button>
                     </div>
                 </form>
             </div>
@@ -639,7 +642,7 @@
                 <div class="p-6 bg-slate-50 border-t border-slate-100 flex items-center justify-between">
                     <span class="text-[11px] text-slate-500">Anda dapat mengubah pengaturan ini sewaktu-waktu di menu sidebar.</span>
                     <button @click="setupModalOpen = false" class="px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-xl shadow-xs transition-all">
-                        Mengerti, Lanjutkan
+                        Mengerti
                     </button>
                 </div>
             </div>
