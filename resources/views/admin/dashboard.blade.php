@@ -498,8 +498,14 @@
                     </div>
 
                     <div class="flex items-center justify-end gap-2 pt-2">
-                        <button type="button" @click="rejectModalOpen = false" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl">Batal</button>
-                        <button type="submit" class="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-xl shadow-md">Tolak</button>
+                        <button type="button" @click="rejectModalOpen = false" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl flex items-center gap-1.5">
+                            <i data-lucide="x" class="w-4 h-4"></i>
+                            <span>Batal</span>
+                        </button>
+                        <button type="submit" class="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-xl shadow-md flex items-center gap-1.5">
+                            <i data-lucide="ban" class="w-4 h-4"></i>
+                            <span>Tolak</span>
+                        </button>
                     </div>
                 </form>
             </div>
@@ -551,7 +557,10 @@
                     </div>
 
                     <div class="flex items-center justify-end gap-2 pt-2">
-                        <button type="button" @click="rescheduleModalOpen = false" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl">Batal</button>
+                        <button type="button" @click="rescheduleModalOpen = false" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl flex items-center gap-1.5">
+                            <i data-lucide="x" class="w-4 h-4"></i>
+                            <span>Batal</span>
+                        </button>
                         <button type="submit" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl shadow-md flex items-center gap-1.5">
                             <i data-lucide="save" class="w-4 h-4"></i>
                             <span>Simpan</span>

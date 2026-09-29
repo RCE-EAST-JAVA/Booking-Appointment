@@ -131,7 +131,35 @@
     </footer>
 
     <script>
-        lucide.createIcons();
+        function renderLucideIcons() {
+            if (window.lucide && typeof window.lucide.createIcons === 'function') {
+                window.lucide.createIcons();
+            }
+        }
+
+        renderLucideIcons();
+        document.addEventListener('DOMContentLoaded', renderLucideIcons);
+        document.addEventListener('alpine:initialized', renderLucideIcons);
+
+        const lucideObserver = new MutationObserver((mutations) => {
+            let hasNewIcons = false;
+            for (const m of mutations) {
+                if (m.addedNodes && m.addedNodes.length > 0) {
+                    for (const node of m.addedNodes) {
+                        if (node.nodeType === 1 && (node.hasAttribute('data-lucide') || (node.querySelector && node.querySelector('[data-lucide]')))) {
+                            hasNewIcons = true;
+                            break;
+                        }
+                    }
+                }
+                if (hasNewIcons) break;
+            }
+            if (hasNewIcons) {
+                renderLucideIcons();
+            }
+        });
+        lucideObserver.observe(document.body, { childList: true, subtree: true });
     </script>
 </body>
 </html>
+

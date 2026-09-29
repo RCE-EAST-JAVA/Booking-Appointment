@@ -1015,8 +1015,9 @@ document.addEventListener('alpine:init', () => {
                     </template>
 
                     <div class="flex items-center gap-2">
-                        <button type="button" @click="modalOpen = false" class="px-4 py-2 border border-slate-300 text-slate-700 hover:bg-slate-100 rounded-xl text-xs font-bold transition-all">
-                            Batal
+                        <button type="button" @click="modalOpen = false" class="px-4 py-2 border border-slate-300 text-slate-700 hover:bg-slate-100 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5">
+                            <i data-lucide="x" class="w-4 h-4"></i>
+                            <span>Batal</span>
                         </button>
                         <button type="button" @click="saveDayOverride()" class="px-5 py-2 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-xs font-bold shadow-xs transition-all flex items-center gap-1.5">
                             <i data-lucide="save" class="w-4 h-4"></i>
@@ -1040,8 +1041,14 @@ document.addEventListener('alpine:init', () => {
                 <form @submit.prevent="submitReject()" class="space-y-4">
                     <textarea x-model="rejectReason" required rows="3" placeholder="Alasan penolakan..." class="w-full p-3 border border-slate-300 rounded-xl text-xs font-medium focus:ring-2 focus:ring-rose-500"></textarea>
                     <div class="flex justify-end gap-2">
-                        <button type="button" @click="rejectModalOpen = false" class="px-4 py-2 border border-slate-300 rounded-xl text-xs font-bold hover:bg-slate-100">Batal</button>
-                        <button type="submit" class="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold shadow-xs">Tolak</button>
+                        <button type="button" @click="rejectModalOpen = false" class="px-4 py-2 border border-slate-300 rounded-xl text-xs font-bold hover:bg-slate-100 flex items-center gap-1.5 text-slate-700">
+                            <i data-lucide="x" class="w-4 h-4"></i>
+                            <span>Batal</span>
+                        </button>
+                        <button type="submit" class="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold shadow-xs flex items-center gap-1.5">
+                            <i data-lucide="ban" class="w-4 h-4"></i>
+                            <span>Tolak</span>
+                        </button>
                     </div>
                 </form>
             </div>
@@ -1092,7 +1099,10 @@ document.addEventListener('alpine:init', () => {
                     </div>
 
                     <div class="flex justify-end gap-2 pt-2">
-                        <button type="button" @click="rescheduleModalOpen = false" class="px-4 py-2 border border-slate-300 hover:bg-slate-50 rounded-xl text-xs font-bold text-slate-600">Batal</button>
+                        <button type="button" @click="rescheduleModalOpen = false" class="px-4 py-2 border border-slate-300 hover:bg-slate-50 rounded-xl text-xs font-bold text-slate-600 flex items-center gap-1.5">
+                            <i data-lucide="x" class="w-4 h-4"></i>
+                            <span>Batal</span>
+                        </button>
                         <button type="button" @click="submitReschedule()" :disabled="actionLoadingId === selectedId || (isBlocked || !proposedSlot)" class="px-4 py-2 bg-brand-600 hover:bg-brand-700 disabled:opacity-50 text-white rounded-xl text-xs font-bold flex items-center gap-1.5">
                             <i data-lucide="save" class="w-4 h-4"></i>
                             <span>Simpan</span>
